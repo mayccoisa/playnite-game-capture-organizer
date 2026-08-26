@@ -1,0 +1,73 @@
+name: Build & Release Extension (.pext)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-pack:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Baixar o Playnite (SDK para compilar + Toolbox para empacotar)
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/JosefNemec/Playnite/releases/download/10.35/Playnite1035.zip" -OutFile "playnite.zip"
+          Expand-Archive "playnite.zip" -DestinationPath "playnite"
+
+      # Testes ANTES do build: pacote com lógica quebrada não deve nem ser gerado.
+      - name: Suíte de verificação
+        run: dotnet run --project tests\OrganizerTests\OrganizerTests.csproj -c Debug --nologo -p:PlayniteDir=${{ github.workspace }}\playnite
+
+      - name: Build (Release)
+        run: dotnet build GameCaptureOrganizer\GameCaptureOrganizer.csproj -c Release -p:PlayniteDir=${{ github.workspace }}\playnite
+
+      - name: Empacotar .pext
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\pkg | Out-Null
+          Copy-Item GameCaptureOrganizer\bin\Release\GameCaptureOrganizer.dll dist\pkg
+          Copy-Item GameCaptureOrganizer\bin\Release\extension.yaml dist\pkg
+          Copy-Item GameCaptureOrganizer\bin\Release\icon.png dist\pkg
+          .\playnite\Toolbox.exe pack dist\pkg dist
+
+      - name: Conferir o pacote gerado
+        run: |
+          $pext = Get-ChildItem dist -Filter *.pext | Select-Object -First 1
+          if (-not $pext) { throw "Nenhum .pext gerado." }
+          # A unica prova da versao publicada e o extension.yaml DENTRO do pacote.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $tmp = Join-Path $env:TEMP ([Guid]::NewGuid().ToString('N'))
+          [IO.Compression.ZipFile]::ExtractToDirectory($pext.FullName, $tmp)
+          Get-Content (Join-Path $tmp 'extension.yaml')
+          if (-not (Test-Path (Join-Path $tmp 'icon.png'))) { throw "O pacote saiu sem o icon.png." }
+
+      - name: Publicar release no GitHub
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "dist/*.pext"
+          # generate_release_notes DESLIGADO de proposito: ligado, ele reescreve o corpo do
+          # release criado pelo release.ps1 e apaga o aviso de instalacao manual. Ja aconteceu.
+          generate_release_notes: false
+          body: |
+            ## Instalação
+
+            Baixe o arquivo `.pext` abaixo e dê dois cliques nele com o **Playnite fechado**.
+
+            > A partir da versão instalada, dá para verificar atualizações direto em
+            > Configurações da extensão › Avançado › Verificar atualizações.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enviar artefato (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameCaptureOrganizer-pext
+          path: "dist/*.pext"

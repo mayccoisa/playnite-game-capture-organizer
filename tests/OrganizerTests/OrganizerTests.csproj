@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Arranjo de verificacao: compila os arquivos da extensao que nao dependem de UI e os exercita
+    numa pasta temporaria. Roda com "dotnet run" a partir desta pasta; sai com codigo 1 se algo
+    falhar. Nao entra no .pext e nao e tocado pelo CI de release.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>OrganizerTests</RootNamespace>
+    <AssemblyName>OrganizerTests</AssemblyName>
+    <PlayniteDir>D:\Playnite</PlayniteDir>
+    <SrcDir>$(MSBuildThisFileDirectory)..\..\GameCaptureOrganizer</SrcDir>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="$(SrcDir)\CaptureCore.cs" />
+    <Compile Include="$(SrcDir)\SessionIndex.cs" />
+    <Compile Include="$(SrcDir)\OrganizerService.cs" />
+    <Compile Include="$(SrcDir)\OrganizerSettings.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(PlayniteDir)\Playnite.SDK.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(PlayniteDir)\Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

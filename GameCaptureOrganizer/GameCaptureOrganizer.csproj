@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>GameCaptureOrganizer</AssemblyName>
+    <RootNamespace>GameCaptureOrganizer</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Deterministic>true</Deterministic>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>0.1.0</Version>
+    <!-- Caminho da instalacao do Playnite; a CI passa o dela com -p:PlayniteDir=... -->
+    <PlayniteDir>D:\Playnite</PlayniteDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- So Playnite.SDK. Referenciar Playnite.dll ou Playnite.Common.dll faz o app RECUSAR
+         carregar a extensao. -->
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(PlayniteDir)\Playnite.SDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(PlayniteDir)\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="extension.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- O icone fica SOLTO ao lado da DLL, nao embutido: o Playnite le o Icon: do
+         extension.yaml direto do disco para desenhar a linha na lista de complementos. -->
+    <None Update="icon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
