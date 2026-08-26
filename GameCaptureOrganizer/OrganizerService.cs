@@ -20,7 +20,14 @@ namespace GameCaptureOrganizer
     /// </summary>
     public interface ILibraryLookup
     {
+        /// <summary>Casamento exato pela forma normalizada do titulo.</summary>
         GameHint Find(string rawName);
+
+        /// <summary>
+        /// Casamento por prefixo, e so quando ele e UNICO na biblioteca. E o que resolve o titulo
+        /// da janela abreviado ("Pal" -> "Palworld") sem apelido configurado.
+        /// </summary>
+        GameHint FindByPrefix(string rawName);
     }
 
     public class OrganizeResult
@@ -257,6 +264,17 @@ namespace GameCaptureOrganizer
                 return null;
             }
 
+            // O apelido vem ANTES da biblioteca de proposito: ele traduz o titulo da janela para
+            // o nome do jogo, e e a partir do nome traduzido que a biblioteca acha a plataforma e
+            // a fonte. Aplicado depois, "Pal" nunca chegaria a "Palworld".
+            var apelido = CaptureCore.ApplyAlias(doArquivo, CaptureCore.ParseAliases(settings.NameAliases));
+            var origemDoNome = CaptureCore.OriginFileName;
+            if (!string.IsNullOrWhiteSpace(apelido))
+            {
+                doArquivo = apelido;
+                origemDoNome = CaptureCore.OriginAlias;
+            }
+
             if (settings.MatchByLibrary && library != null)
             {
                 var hint = library.Find(doArquivo);
@@ -268,6 +286,19 @@ namespace GameCaptureOrganizer
                     contexto.Origin = CaptureCore.OriginLibrary;
                     return contexto;
                 }
+
+                if (settings.MatchByPrefix)
+                {
+                    var porPrefixo = library.FindByPrefix(doArquivo);
+                    if (porPrefixo != null && !string.IsNullOrWhiteSpace(porPrefixo.Name))
+                    {
+                        contexto.GameName = porPrefixo.Name;
+                        contexto.Platform = porPrefixo.Platform;
+                        contexto.Source = porPrefixo.Source;
+                        contexto.Origin = CaptureCore.OriginLibraryPrefix;
+                        return contexto;
+                    }
+                }
             }
 
             if (!settings.FallbackToFileName)
@@ -276,7 +307,7 @@ namespace GameCaptureOrganizer
             }
 
             contexto.GameName = doArquivo;
-            contexto.Origin = CaptureCore.OriginFileName;
+            contexto.Origin = origemDoNome;
             return contexto;
         }
 

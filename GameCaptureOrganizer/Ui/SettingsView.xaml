@@ -128,6 +128,8 @@
                                               IsChecked="{Binding Settings.MatchBySession, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     <CheckBox Content="Procurar o título lido do arquivo na biblioteca do Playnite"
                                               IsChecked="{Binding Settings.MatchByLibrary, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox Content="Casar título abreviado com a biblioteca quando houver um único candidato (Pal → Palworld)"
+                                              IsChecked="{Binding Settings.MatchByPrefix, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     <CheckBox Content="Em último caso, usar o título do próprio nome do arquivo"
                                               IsChecked="{Binding Settings.FallbackToFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 </StackPanel>
@@ -135,8 +137,15 @@
                                 <TextBlock Style="{StaticResource FieldLabel}" Text="Folga de horário ao casar captura e sessão (minutos)" />
                                 <TextBox Style="{StaticResource NumberBox}"
                                          Text="{Binding Settings.ToleranceMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Apelidos: título da janela = nome do jogo (um por linha)" />
+                                <TextBox Text="{Binding Settings.NameAliases, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" TextWrapping="NoWrap" Height="76"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
                                 <TextBlock Style="{StaticResource HintText}"
-                                           Text="A sessão do Playnite é o dado mais confiável porque não depende do título da janela, que o Game Bar às vezes escreve diferente do nome da biblioteca. Com as três opções desligadas nada é organizado — a captura fica onde está, de propósito." />
+                                           Text="O Game Bar nomeia o arquivo pelo título da JANELA, que às vezes não é o nome do jogo: a janela do Palworld se chama &quot;Pal&quot;. Nenhuma regra de texto adivinha isso — por isso a equivalência é declarada aqui, e passa a valer para sempre." />
+
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="A sessão do Playnite é o dado mais confiável porque não depende do título da janela. Com todas as opções desligadas nada é organizado — a captura fica onde está, de propósito." />
                             </StackPanel>
                         </Border>
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0 — 2026-08-26
+
+Corrige o caso em que o Game Bar nomeia o arquivo pelo **título da janela**, que nem sempre é o
+nome do jogo. Descoberto no Palworld: a janela dele se chama `Pal`, então as capturas antigas
+foram parar numa pasta `Pal`.
+
+### O que entrou
+
+- **Tabela de apelidos** (`Pal = Palworld`, um por linha) na aba Organização. O apelido é aplicado
+  antes da busca na biblioteca, então o nome traduzido ainda ganha plataforma e fonte.
+- **Casamento por prefixo** com a biblioteca: `Pal` vira `Palworld` quando esse é o **único**
+  jogo que começa com o texto lido. Com dois candidatos (`Palworld` e `Paladins`) ele não escolhe
+  nenhum — ir para a pasta errada em silêncio é pior do que ficar com o nome cru.
+- O log passa a dizer qual dos caminhos resolveu o nome: sessão, apelido, biblioteca, prefixo ou
+  nome do arquivo.
+
+### Depois de atualizar
+
+A pasta `Pal` já criada não se move sozinha: renomeie para `Palworld` (ou junte com a existente).
+Capturas novas, feitas com o jogo aberto pelo Playnite, já vinham certas pela sessão — o conserto
+vale para captura antiga e para captura feita fora do Playnite.
+
 ## 0.1.0 — 2026-08-26
 
 Primeira versão. Substitui o script `GameCaptureWatcher.ps1` que rodava pelo Playnite.

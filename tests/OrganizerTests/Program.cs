@@ -23,6 +23,9 @@ namespace OrganizerTests
             CapturaForaDeSessaoVaiParaOFallback();
             SemNomeConfiavelFicaNaOrigem();
             ArquivoDeOutroTipoEIgnorado();
+            Apelidos();
+            CasamentoPorPrefixo();
+            ApelidoResolveOTituloDaJanela();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -203,6 +206,54 @@ namespace OrganizerTests
 
                 Eq("0", r.Organized.ToString());
                 IsTrue(Directory.GetFiles(caixa.Origem).Length == 1, "extensão desconhecida fica onde está");
+            }
+        }
+
+        private static void Apelidos()
+        {
+            var mapa = CaptureCore.ParseAliases("Pal = Palworld\n# comentário\nSTALKER2=S.T.A.L.K.E.R. 2\nlinha inválida\n");
+
+            Eq("Palworld", CaptureCore.ApplyAlias("Pal", mapa));
+            // A chave e comparada normalizada: como o arquivo escreve nao importa.
+            Eq("Palworld", CaptureCore.ApplyAlias("pal", mapa));
+            Eq("S.T.A.L.K.E.R. 2", CaptureCore.ApplyAlias("stalker 2", mapa));
+            IsTrue(CaptureCore.ApplyAlias("Hades", mapa) == null, "título sem apelido não é traduzido");
+            IsTrue(!mapa.ContainsKey(CaptureCore.NormalizeName("linha inválida")), "linha sem '=' é ignorada");
+            IsTrue(!mapa.ContainsKey(CaptureCore.NormalizeName("comentário")), "linha iniciada por # é comentário");
+        }
+
+        private static void CasamentoPorPrefixo()
+        {
+            var biblioteca = new[] { "palworld", "hades", "eldenring" };
+            Eq("palworld", CaptureCore.PickUniquePrefixMatch("pal", biblioteca));
+            Eq("eldenring", CaptureCore.PickUniquePrefixMatch("elden", biblioteca));
+
+            // Dois candidatos: devolve NULO, nunca o primeiro. Escolher seria inventar, e a
+            // captura ir para a pasta errada em silêncio é pior do que ficar com o nome cru.
+            var ambigua = new[] { "palworld", "paladins" };
+            IsTrue(CaptureCore.PickUniquePrefixMatch("pal", ambigua) == null, "prefixo ambíguo não escolhe nenhum");
+
+            // Curto demais não tenta: "GT" casaria com meia biblioteca.
+            IsTrue(CaptureCore.PickUniquePrefixMatch("gt", new[] { "gtavice", "gtsport" }) == null, "prefixo com menos de 3 letras não tenta");
+            IsTrue(CaptureCore.PickUniquePrefixMatch("zzz", biblioteca) == null, "prefixo que não casa com nada devolve nulo");
+        }
+
+        /// <summary>
+        /// O caso que originou tudo: a janela do Palworld se chama "Pal", entao a captura nascia
+        /// numa pasta "Pal". Com o apelido, ela vai para "Palworld" mesmo sem sessao registrada.
+        /// </summary>
+        private static void ApelidoResolveOTituloDaJanela()
+        {
+            using (var caixa = new Caixa())
+            {
+                caixa.Criar("Pal 15_02_2026 20_30_12.png", DateTime.UtcNow.AddDays(-30));
+                caixa.Settings.NameAliases = "Pal = Palworld";
+
+                var r = caixa.Servico().Run(caixa.Settings);
+
+                Eq("1", r.Organized.ToString());
+                IsTrue(Directory.Exists(Path.Combine(caixa.Destino, "Palworld", "Screenshots")),
+                    "o apelido levou a captura para a pasta do Palworld, e não para \"Pal\"");
             }
         }
 

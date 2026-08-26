@@ -255,6 +255,44 @@ namespace GameCaptureOrganizer
             }
         }
 
+        /// <summary>
+        /// Último recurso antes do nome cru: o único jogo da biblioteca cujo título começa com o
+        /// texto lido. Resolve o título de janela abreviado — a janela do Palworld se chama "Pal".
+        /// Havendo mais de um candidato, devolve nulo: escolher seria inventar.
+        /// </summary>
+        public GameHint FindByPrefix(string rawName)
+        {
+            var key = CaptureCore.NormalizeName(rawName);
+            if (string.IsNullOrEmpty(key))
+            {
+                return null;
+            }
+
+            try
+            {
+                // Reaproveita o índice montado pelo Find (e o reconstrói se ainda não existir).
+                Find(rawName);
+                if (index == null)
+                {
+                    return null;
+                }
+
+                var unico = CaptureCore.PickUniquePrefixMatch(key, index.Keys);
+                if (unico == null)
+                {
+                    return null;
+                }
+
+                GameHint hint;
+                return index.TryGetValue(unico, out hint) ? hint : null;
+            }
+            catch (Exception ex)
+            {
+                logger.Warn(ex, "Não consegui consultar a biblioteca por prefixo.");
+                return null;
+            }
+        }
+
         /// <summary>Jogo pode ter mais de uma plataforma, e pode nao ter nenhuma. Nada de assumir a primeira sem checar.</summary>
         private static string NameOfPlatform(Game game)
         {

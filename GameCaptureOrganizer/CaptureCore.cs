@@ -51,7 +51,105 @@ namespace GameCaptureOrganizer
         /// <summary>Como o nome do jogo foi descoberto, em ordem de confianca.</summary>
         public const string OriginSession = "sessao do Playnite";
         public const string OriginLibrary = "biblioteca do Playnite";
+        public const string OriginAlias = "apelido configurado";
+        public const string OriginLibraryPrefix = "biblioteca (por prefixo)";
         public const string OriginFileName = "nome do arquivo";
+
+        // ---------------------------------------------------------------- apelidos
+
+        /// <summary>
+        /// Le a tabela de apelidos ("Pal = Palworld", um por linha) indexada pela forma
+        /// normalizada do apelido.
+        ///
+        /// Ela existe porque o Game Bar nomeia o arquivo pelo TITULO DA JANELA, que as vezes nao
+        /// tem relacao com o nome do jogo: a janela do Palworld se chama "Pal", e nenhuma regra
+        /// de texto deduz "Palworld" a partir disso sem inventar. Quem sabe a equivalencia e a
+        /// pessoa, entao ela declara — e a partir dai vale para sempre, sem adivinhacao.
+        /// </summary>
+        public static Dictionary<string, string> ParseAliases(string raw)
+        {
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return map;
+            }
+
+            foreach (var line in raw.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var texto = line.Trim();
+                if (texto.Length == 0 || texto.StartsWith("#"))
+                {
+                    continue;
+                }
+
+                var corte = texto.IndexOf('=');
+                if (corte <= 0 || corte == texto.Length - 1)
+                {
+                    continue;
+                }
+
+                var de = NormalizeName(texto.Substring(0, corte));
+                var para = texto.Substring(corte + 1).Trim();
+                if (de.Length > 0 && para.Length > 0 && !map.ContainsKey(de))
+                {
+                    map[de] = para;
+                }
+            }
+
+            return map;
+        }
+
+        public static string ApplyAlias(string name, Dictionary<string, string> aliases)
+        {
+            if (aliases == null || aliases.Count == 0 || string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            string destino;
+            return aliases.TryGetValue(NormalizeName(name), out destino) ? destino : null;
+        }
+
+        // ---------------------------------------------------------------- casamento por prefixo
+
+        /// <summary>Tamanho minimo do texto para o casamento por prefixo ser tentado.</summary>
+        public const int MinPrefixLength = 3;
+
+        /// <summary>
+        /// Acha na biblioteca o unico titulo que COMECA com o texto lido do arquivo. E o que casa
+        /// "Pal" (titulo da janela do Palworld) com "Palworld" sem precisar de apelido.
+        ///
+        /// Duas travas, e nenhuma das duas e conservadorismo decorativo:
+        /// - **Menos de 3 caracteres nao tenta.** "GT" casaria com meia biblioteca.
+        /// - **Mais de um candidato devolve NULO**, nunca o primeiro. "Pal" com Palworld E Paladins
+        ///   instalados e ambiguo, e escolher um seria inventar — a captura cai no nome do arquivo,
+        ///   que e visivelmente cru, em vez de ir para a pasta errada em silencio.
+        /// </summary>
+        public static string PickUniquePrefixMatch(string normalizedKey, IEnumerable<string> normalizedLibraryKeys)
+        {
+            if (string.IsNullOrEmpty(normalizedKey) || normalizedKey.Length < MinPrefixLength || normalizedLibraryKeys == null)
+            {
+                return null;
+            }
+
+            string unico = null;
+            foreach (var candidato in normalizedLibraryKeys)
+            {
+                if (string.IsNullOrEmpty(candidato) || !candidato.StartsWith(normalizedKey, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (unico != null)
+                {
+                    return null;
+                }
+
+                unico = candidato;
+            }
+
+            return unico;
+        }
 
         // ---------------------------------------------------------------- extensoes
 

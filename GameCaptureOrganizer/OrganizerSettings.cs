@@ -30,6 +30,10 @@ namespace GameCaptureOrganizer
         private bool fallbackToFileName = true;
         private bool showNotification = true;
         private bool writeLog = true;
+        private bool matchByPrefix = true;
+        // O Palworld ja vem na tabela porque foi ele que a originou: a janela dele se chama
+        // "Pal", entao a captura nascia com esse nome. Nao e chute — foi medido numa passada real.
+        private string nameAliases = "Pal = Palworld";
 
         /// <summary>Uma pasta por linha. O Game Bar sabe gravar em mais de um lugar (video e print separados).</summary>
         public string SourceFolders
@@ -130,6 +134,20 @@ namespace GameCaptureOrganizer
         {
             get { return writeLog; }
             set { SetValue(ref writeLog, value); }
+        }
+
+        /// <summary>Casa "Pal" com "Palworld" quando UM unico jogo da biblioteca comeca com o texto lido.</summary>
+        public bool MatchByPrefix
+        {
+            get { return matchByPrefix; }
+            set { SetValue(ref matchByPrefix, value); }
+        }
+
+        /// <summary>Tabela "titulo da janela = nome do jogo", um por linha.</summary>
+        public string NameAliases
+        {
+            get { return nameAliases; }
+            set { SetValue(ref nameAliases, value); }
         }
 
         /// <summary>
