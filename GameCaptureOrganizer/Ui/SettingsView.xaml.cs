@@ -30,6 +30,7 @@ namespace GameCaptureOrganizer.Ui
             VersionText.Text = updateChecker.CurrentVersion;
             UpdatePreview();
             RefreshGameBarStatus();
+            RefreshSteamStatus();
         }
 
         // ---------------------------------------------------------------- captura automatica
@@ -59,6 +60,53 @@ namespace GameCaptureOrganizer.Ui
         private void OnCheckGameBar(object sender, RoutedEventArgs e)
         {
             RefreshGameBarStatus();
+        }
+
+        /// <summary>
+        /// Diz se a Steam foi encontrada E se há progresso local para ler. As duas coisas são
+        /// diferentes: a Steam pode estar instalada e a pasta de estatísticas ainda estar vazia
+        /// porque nenhum jogo com conquista foi aberto naquele perfil.
+        /// </summary>
+        private void RefreshSteamStatus()
+        {
+            try
+            {
+                var steam = GameCaptureOrganizer.Achievements.SteamStats.ResolveSteamPath(Settings.SteamFolder);
+                if (string.IsNullOrWhiteSpace(steam))
+                {
+                    SteamStatusText.Text = "Não encontrei a Steam nesta máquina. Se ela existe, escreva a pasta acima " +
+                                           "(a que tem steam.exe). Sem isso, a captura por conquista fica desligada e o " +
+                                           "resto continua funcionando.";
+                    return;
+                }
+
+                var stats = GameCaptureOrganizer.Achievements.SteamStats.StatsFolder(steam);
+                var arquivos = 0;
+                try
+                {
+                    if (System.IO.Directory.Exists(stats))
+                    {
+                        arquivos = System.IO.Directory.GetFiles(stats, "UserGameStats_*.bin").Length;
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                SteamStatusText.Text = arquivos > 0
+                    ? "Steam em " + steam + " · " + arquivos + " jogo(s) com progresso local para ler."
+                    : "Steam em " + steam + ", mas ainda não há progresso local em appcache\\stats. Ele aparece " +
+                      "quando um jogo com conquista roda pela Steam.";
+            }
+            catch (Exception ex)
+            {
+                SteamStatusText.Text = "Não consegui procurar a Steam: " + ex.Message;
+            }
+        }
+
+        private void OnCheckSteam(object sender, RoutedEventArgs e)
+        {
+            RefreshSteamStatus();
         }
 
         private void OnCaptureNow(object sender, RoutedEventArgs e)

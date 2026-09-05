@@ -123,6 +123,44 @@ namespace GameCaptureOrganizer.AutoCapture
         }
 
         /// <summary>
+        /// A captura de uma conquista: print e, se pedido, o clipe dos ultimos segundos.
+        ///
+        /// Os dois atalhos saem com respiro entre eles. Mandar Win+Alt+PrtScn e Win+Alt+G colados
+        /// faz o Game Bar tratar a segunda combinacao como repeticao da primeira, e o clipe nao
+        /// sai — sem erro nenhum, o que e pior do que falhar.
+        /// </summary>
+        public bool CaptureForAchievement(bool alsoClip)
+        {
+            var feito = false;
+
+            var quandoPrint = DateTime.UtcNow;
+            if (trigger.TakeScreenshot())
+            {
+                triggers.Add(CaptureReason.Conquista, gameId, gameName, quandoPrint);
+                feito = true;
+            }
+
+            if (alsoClip)
+            {
+                Thread.Sleep(700);
+
+                var quandoClipe = DateTime.UtcNow;
+                if (trigger.SaveClip())
+                {
+                    triggers.Add(CaptureReason.Conquista, gameId, gameName, quandoClipe);
+                    feito = true;
+                }
+            }
+
+            if (feito)
+            {
+                Confirm();
+            }
+
+            return feito;
+        }
+
+        /// <summary>
         /// A confirmacao de que fomos NOS que pedimos. Sai depois do atalho, nunca antes: um bipe
         /// que toca e nao vira captura ensina a pessoa a confiar no som errado.
         ///

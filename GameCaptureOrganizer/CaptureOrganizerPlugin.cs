@@ -27,6 +27,7 @@ namespace GameCaptureOrganizer
         private readonly AutoCapture.TriggerLog triggers;
         private readonly AutoCapture.ICaptureTrigger trigger;
         private readonly AutoCapture.CaptureScheduler scheduler;
+        private Achievements.SteamAchievementWatcher achievements;
         private readonly string logPath;
         private int pendingRun;
 
@@ -132,6 +133,54 @@ namespace GameCaptureOrganizer
             }
 
             scheduler.Start(game.Id.ToString(), game.Name);
+            StartAchievementWatch(game, estado);
+        }
+
+        /// <summary>
+        /// Liga a vigia das conquistas da Steam para este jogo, quando ele é da biblioteca Steam.
+        ///
+        /// Jogo mapeado à mão não tem conquista para observar, e isso não é falha: o print de
+        /// tempos em tempos continua valendo para ele, que era justamente o pedido original.
+        /// </summary>
+        private void StartAchievementWatch(Game game, AutoCapture.GameBarState estado)
+        {
+            if (!Settings.AchievementCaptureEnabled)
+            {
+                return;
+            }
+
+            string appId;
+            if (!Achievements.SteamStats.TryGetAppId(game.PluginId, game.GameId, out appId))
+            {
+                return;
+            }
+
+            var pasta = Achievements.SteamStats.StatsFolder(
+                Achievements.SteamStats.ResolveSteamPath(Settings.SteamFolder));
+            if (string.IsNullOrWhiteSpace(pasta))
+            {
+                logger.Info("[Conquistas] Não achei a Steam (registro nem pasta configurada); nada a vigiar.");
+                return;
+            }
+
+            var salvarClipe = Settings.AchievementSavesClip && estado.CanSaveClip;
+            if (Settings.AchievementSavesClip && !estado.CanSaveClip)
+            {
+                // Dito uma vez, no começo: descobrir no fim do jogo que nenhum clipe saiu é tarde.
+                logger.Warn("[Conquistas] " + estado.Explain());
+                if (Settings.ShowNotification)
+                {
+                    Notify("As conquistas vão render só print: " + estado.Explain());
+                }
+            }
+
+            achievements = new Achievements.SteamAchievementWatcher(
+                pasta,
+                Achievements.SteamStats.StatsFilter(appId),
+                _ => scheduler.CaptureForAchievement(salvarClipe),
+                msg => logger.Info("[Conquistas] " + msg));
+
+            achievements.Start();
         }
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
@@ -139,6 +188,12 @@ namespace GameCaptureOrganizer
             try
             {
                 scheduler.Stop();
+
+                if (achievements != null)
+                {
+                    achievements.Dispose();
+                    achievements = null;
+                }
             }
             catch (Exception ex)
             {

@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.5.0 — 2026-09-05
+
+Captura quando uma **conquista da Steam** é destravada: print na hora e, se a gravação em segundo
+plano do Game Bar estiver ligada, o clipe dos segundos anteriores.
+
+### Como ela sabe da conquista
+
+Lendo o arquivo de progresso local da Steam (`appcache\stats\UserGameStats_*_<appId>.bin`, no
+formato KeyValues binário da Valve). **Sem API, sem chave, sem internet** — a Steam reescreve esse
+arquivo no instante do desbloqueio, e a extensão fica de olho nele enquanto o jogo roda.
+
+Diferente da extensão que inspirou esta versão, aqui **não** se lê o arquivo de schema: para
+disparar uma captura basta saber que o conjunto de conquistas cresceu, não qual delas foi.
+
+### Decisões que evitam captura errada
+
+- **A primeira leitura é a linha de base, e é silenciosa.** Abrir um jogo com duzentas conquistas
+  antigas não dispara nada — só o que aparece depois conta.
+- **Leitura falha não é "zero conquistas".** O arquivo pode ser lido no meio da escrita da Steam;
+  nesse caso a extensão descarta a leitura em vez de concluir que tudo sumiu (e, na leitura
+  seguinte, que tudo foi destravado de uma vez).
+- **Uma captura por momento.** Cinco conquistas na mesma cena são um momento só: há uma janela de
+  15 segundos entre capturas por conquista.
+- **Dois caminhos ao mesmo tempo:** o aviso do sistema de arquivos, que responde no instante, e
+  uma releitura a cada 30 segundos, porque esse aviso perde evento e a falha seria silenciosa.
+- **Bit que some não conta.** O disparo sai de evidência de conquista nova, nunca de "o arquivo
+  mudou".
+
+### Onde encontrar
+
+Na aba **Captura automática**, junto com o print periódico: ligar/desligar, salvar clipe também, e
+um campo para a pasta da Steam com o botão "Procurar a Steam" — que diz se ela foi encontrada e
+quantos jogos têm progresso local para ler.
+
+### Limite conhecido
+
+Vale para jogo da **biblioteca Steam** aberto pelo Playnite, porque é de lá que sai o appId. Jogo
+mapeado à mão não tem conquista para observar e continua com o print de tempos em tempos, que era
+o pedido original.
+
 ## 0.4.0 — 2026-09-05
 
 Painel **Capturas** na barra lateral do Playnite: a pasta organizada vista de dentro do app, sem

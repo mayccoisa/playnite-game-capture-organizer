@@ -228,6 +228,30 @@
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Conquistas da Steam" />
+                                <CheckBox Margin="0,12,0,0"
+                                          Content="Capturar quando uma conquista for destravada"
+                                          IsChecked="{Binding Settings.AchievementCaptureEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <CheckBox Content="Salvar também o clipe dos últimos segundos"
+                                          IsChecked="{Binding Settings.AchievementSavesClip, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Lido do arquivo de progresso local da Steam: sem API, sem chave e sem internet, no instante do desbloqueio. Vale para jogo da biblioteca Steam aberto pelo Playnite; jogo mapeado à mão não tem conquista para observar e continua só com o print de tempos em tempos." />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="O clipe exige a gravação em segundo plano do Game Bar ligada — é ela que guarda os segundos anteriores. Sem ela, a conquista rende só print, e a extensão avisa ao começar o jogo." />
+
+                                <Border Style="{StaticResource Separator}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Pasta da Steam (deixe vazio para descobrir sozinho)" />
+                                <TextBox Text="{Binding Settings.SteamFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock x:Name="SteamStatusText" Style="{StaticResource StatusValue}"
+                                           TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Style="{StaticResource GhostButton}" Content="Procurar a Steam" Click="OnCheckSteam" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="O que o Windows permite hoje" />
                                 <TextBlock x:Name="GameBarStatusText" Style="{StaticResource StatusValue}"
                                            TextWrapping="Wrap" Margin="0,12,0,0" />

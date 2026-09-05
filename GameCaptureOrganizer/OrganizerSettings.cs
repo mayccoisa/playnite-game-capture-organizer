@@ -156,6 +156,41 @@ namespace GameCaptureOrganizer
         private int screenshotIntervalMinutes = 15;
         private int triggerToleranceSeconds = 90;
         private bool playSoundOnCapture = true;
+        private bool achievementCaptureEnabled = true;
+        private bool achievementSavesClip = true;
+        private string steamFolder = string.Empty;
+
+        /// <summary>
+        /// Pasta da Steam, quando a descoberta automatica falha (instalacao portatil, outro
+        /// perfil). Vazio significa "descubra sozinho", que e o caso normal.
+        /// </summary>
+        public string SteamFolder
+        {
+            get { return steamFolder; }
+            set { SetValue(ref steamFolder, value); }
+        }
+
+        /// <summary>
+        /// Capturar quando uma conquista da Steam e destravada. Depende da chave mestra
+        /// <see cref="AutoCaptureEnabled"/>, e por isso pode nascer ligada: quem liga a captura
+        /// automatica quer exatamente isto, e quem nao liga nada continua sem nada.
+        /// </summary>
+        public bool AchievementCaptureEnabled
+        {
+            get { return achievementCaptureEnabled; }
+            set { SetValue(ref achievementCaptureEnabled, value); }
+        }
+
+        /// <summary>
+        /// Alem do print, salvar o clipe dos ultimos segundos na conquista. Exige a gravacao em
+        /// segundo plano do Game Bar ligada; sem ela o atalho nao faz nada, e quem avisa e a
+        /// propria tela de configuracao.
+        /// </summary>
+        public bool AchievementSavesClip
+        {
+            get { return achievementSavesClip; }
+            set { SetValue(ref achievementSavesClip, value); }
+        }
 
         /// <summary>
         /// Um bipe curto quando a extensao pede a captura. O Game Bar ja mostra o aviso dele por

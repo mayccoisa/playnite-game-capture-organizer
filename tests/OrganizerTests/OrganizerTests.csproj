@@ -28,6 +28,8 @@
     <Compile Include="$(SrcDir)\AutoCapture\CaptureTrigger.cs" />
     <Compile Include="$(SrcDir)\AutoCapture\TriggerLog.cs" />
     <Compile Include="$(SrcDir)\Gallery\GalleryScanner.cs" />
+    <Compile Include="$(SrcDir)\Achievements\SteamKeyValues.cs" />
+    <Compile Include="$(SrcDir)\Achievements\SteamStats.cs" />
   </ItemGroup>
 
   <ItemGroup>

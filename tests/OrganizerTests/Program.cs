@@ -28,6 +28,7 @@ namespace OrganizerTests
             ApelidoResolveOTituloDaJanela();
             MotivoDoGatilho();
             PainelDeCapturas();
+            ConquistaDaSteam();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -383,6 +384,105 @@ namespace OrganizerTests
             Eq("Elden Ring", grupos[1].Name);
             Eq("1 print · 1 vídeo", grupos[1].Summary);
             Eq("2", grupos[1].Total.ToString());
+        }
+
+        /// <summary>
+        /// A leitura do progresso local da Steam. O arquivo e montado aqui em bytes, no formato
+        /// KeyValues binario da Valve, porque depender de uma instalacao real da Steam faria o
+        /// teste passar so na maquina de quem tem o jogo.
+        /// </summary>
+        private static void ConquistaDaSteam()
+        {
+            // O appId so vale vindo da biblioteca Steam do Playnite.
+            string appId;
+            IsTrue(GameCaptureOrganizer.Achievements.SteamStats.TryGetAppId(
+                       GameCaptureOrganizer.Achievements.SteamStats.SteamLibraryPluginId, "1245620", out appId),
+                   "jogo da Steam devolve appId");
+            Eq("1245620", appId);
+
+            IsTrue(!GameCaptureOrganizer.Achievements.SteamStats.TryGetAppId(
+                       Guid.NewGuid(), "1245620", out appId),
+                   "jogo de outra biblioteca não vira appId");
+            IsTrue(!GameCaptureOrganizer.Achievements.SteamStats.TryGetAppId(
+                       GameCaptureOrganizer.Achievements.SteamStats.SteamLibraryPluginId, "pasta\\jogo.exe", out appId),
+                   "GameId que não é número não vira appId");
+
+            Eq("UserGameStats_*_1245620.bin", GameCaptureOrganizer.Achievements.SteamStats.StatsFilter("1245620"));
+
+            var pasta = Path.Combine(Path.GetTempPath(), "gco-steam-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(pasta);
+            try
+            {
+                // Grupo 0 com os bits 0 e 2 ligados: duas conquistas destravadas.
+                var caminho = Path.Combine(pasta, "UserGameStats_123_1245620.bin");
+                File.WriteAllBytes(caminho, ArquivoDeProgresso(0x05));
+
+                var bits = GameCaptureOrganizer.Achievements.SteamStats.ReadUnlockedBits(caminho);
+                IsTrue(bits != null, "arquivo íntegro é lido");
+                Eq("2", bits.Count.ToString());
+                IsTrue(bits.Contains("0:0") && bits.Contains("0:2"), "os bits ligados são os certos");
+
+                // Mais um bit: e isso que dispara a captura.
+                var depois = new HashSet<string>(bits) { "0:5" };
+                Eq("1", GameCaptureOrganizer.Achievements.SteamStats.CountNew(bits, depois).ToString());
+
+                // Bit que SUMIU não conta como conquista nova nem vira número negativo: o disparo
+                // sai de evidência de conquista, nunca de "o arquivo mudou".
+                Eq("0", GameCaptureOrganizer.Achievements.SteamStats.CountNew(depois, bits).ToString());
+
+                // Arquivo cortado no meio (a Steam ainda escrevendo) devolve NULO, não vazio. Vazio
+                // faria a leitura seguinte parecer que todas as conquistas foram destravadas de uma
+                // vez, e o jogo inteiro viraria uma rajada de capturas.
+                var inteiro = ArquivoDeProgresso(0x05);
+                var cortado = Path.Combine(pasta, "UserGameStats_123_999.bin");
+                File.WriteAllBytes(cortado, inteiro.Take(inteiro.Length / 2).ToArray());
+                IsTrue(GameCaptureOrganizer.Achievements.SteamStats.ReadUnlockedBits(cortado) == null,
+                       "arquivo cortado no meio devolve nulo, não conjunto vazio");
+
+                // Linha de base ausente também não dispara nada.
+                Eq("0", GameCaptureOrganizer.Achievements.SteamStats.CountNew(null, depois).ToString());
+            }
+            finally
+            {
+                try { Directory.Delete(pasta, true); } catch { }
+            }
+        }
+
+        /// <summary>Um UserGameStats_*.bin minimo: raiz > cache > grupo 0 > data (int32).</summary>
+        private static byte[] ArquivoDeProgresso(int mascara)
+        {
+            using (var memoria = new MemoryStream())
+            {
+                Bloco(memoria, "UserGameStats");
+                Bloco(memoria, "cache");
+                Bloco(memoria, "0");
+                Inteiro(memoria, "data", mascara);
+                memoria.WriteByte(0x08); // fecha o grupo
+                memoria.WriteByte(0x08); // fecha o cache
+                memoria.WriteByte(0x08); // fecha a raiz
+                return memoria.ToArray();
+            }
+        }
+
+        private static void Bloco(Stream destino, string nome)
+        {
+            destino.WriteByte(0x00);
+            Texto(destino, nome);
+        }
+
+        private static void Inteiro(Stream destino, string nome, int valor)
+        {
+            destino.WriteByte(0x02);
+            Texto(destino, nome);
+            var bytes = BitConverter.GetBytes(valor);
+            destino.Write(bytes, 0, bytes.Length);
+        }
+
+        private static void Texto(Stream destino, string valor)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(valor);
+            destino.Write(bytes, 0, bytes.Length);
+            destino.WriteByte(0x00);
         }
 
         private static void Eq(string esperado, string obtido)
