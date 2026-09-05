@@ -32,6 +32,7 @@ namespace GameCaptureOrganizer.Ui
             RefreshGameBarStatus();
             RefreshSteamStatus();
             RefreshHotkeyStatus();
+            RefreshRules();
         }
 
         // ---------------------------------------------------------------- captura automatica
@@ -108,6 +109,37 @@ namespace GameCaptureOrganizer.Ui
         private void OnCheckSteam(object sender, RoutedEventArgs e)
         {
             RefreshSteamStatus();
+        }
+
+        private void RefreshRules()
+        {
+            try
+            {
+                RulesList.ItemsSource = plugin.RuleRows();
+            }
+            catch (Exception ex)
+            {
+                RulesList.ItemsSource = null;
+                plugin.PlayniteApi.Dialogs.ShowErrorMessage(
+                    "Não consegui ler as regras por jogo: " + ex.Message, PluginIdentity.DisplayName);
+            }
+        }
+
+        private void OnRefreshRules(object sender, RoutedEventArgs e)
+        {
+            RefreshRules();
+        }
+
+        private void OnClearRule(object sender, RoutedEventArgs e)
+        {
+            var linha = RulesList.SelectedItem as CaptureOrganizerPlugin.RuleRow;
+            if (linha == null)
+            {
+                return;
+            }
+
+            plugin.ClearRule(linha.GameId);
+            RefreshRules();
         }
 
         /// <summary>

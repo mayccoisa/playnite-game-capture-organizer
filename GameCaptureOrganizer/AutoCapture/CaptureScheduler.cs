@@ -41,16 +41,19 @@ namespace GameCaptureOrganizer.AutoCapture
             get { lock (gate) { return cancellation != null; } }
         }
 
-        public void Start(string gameId, string gameName)
+        /// <summary>
+        /// Liga o relogio com o plano JA RESOLVIDO (padrao + excecao do jogo). O agendador nao
+        /// resolve regra: quem sabe da excecao e o plugin, que tem o id do jogo na mao.
+        /// </summary>
+        public void Start(string gameId, string gameName, EffectiveCapture plan)
         {
-            var current = settings();
-            if (current == null || !current.AutoCaptureEnabled)
+            if (plan == null || !plan.Enabled)
             {
                 return;
             }
 
-            var minutosPrint = current.ScreenshotIntervalMinutes;
-            var minutosClipe = current.ClipIntervalMinutes;
+            var minutosPrint = plan.ScreenshotMinutes;
+            var minutosClipe = plan.ClipMinutes;
 
             lock (gate)
             {

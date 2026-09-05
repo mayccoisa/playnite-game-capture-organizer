@@ -29,6 +29,7 @@ namespace GameCaptureOrganizer
         private readonly AutoCapture.CaptureScheduler scheduler;
         private Achievements.SteamAchievementWatcher achievements;
         private Input.GlobalHotkey hotkey;
+        private readonly AutoCapture.GameRules rules;
         private readonly string logPath;
         private int pendingRun;
 
@@ -45,6 +46,9 @@ namespace GameCaptureOrganizer
 
             triggers = new AutoCapture.TriggerLog(Path.Combine(dataPath, "gatilhos.json"));
             triggers.Load();
+
+            rules = new AutoCapture.GameRules(Path.Combine(dataPath, "regras-por-jogo.json"));
+            rules.Load();
 
             organizer = new OrganizerService(sessions, this, logPath, msg => logger.Info("[Capturas] " + msg), triggers);
 
@@ -190,8 +194,15 @@ namespace GameCaptureOrganizer
                 return;
             }
 
-            scheduler.Start(game.Id.ToString(), game.Name);
-            StartAchievementWatch(game, estado);
+            var plano = AutoCapture.EffectiveCapture.Resolve(Settings, rules.Get(game.Id.ToString()));
+            if (!plano.Enabled)
+            {
+                logger.Info("[Captura automática] \"" + game.Name + "\" está marcado para não capturar.");
+                return;
+            }
+
+            scheduler.Start(game.Id.ToString(), game.Name, plano);
+            StartAchievementWatch(game, estado, plano);
         }
 
         /// <summary>
@@ -200,9 +211,9 @@ namespace GameCaptureOrganizer
         /// Jogo mapeado à mão não tem conquista para observar, e isso não é falha: o print de
         /// tempos em tempos continua valendo para ele, que era justamente o pedido original.
         /// </summary>
-        private void StartAchievementWatch(Game game, AutoCapture.GameBarState estado)
+        private void StartAchievementWatch(Game game, AutoCapture.GameBarState estado, AutoCapture.EffectiveCapture plano)
         {
-            if (!Settings.AchievementCaptureEnabled)
+            if (!plano.Achievements)
             {
                 return;
             }
@@ -548,6 +559,179 @@ namespace GameCaptureOrganizer
                 "O Windows recusou o atalho do Game Bar. O caso comum é o jogo estar rodando como " +
                 "administrador e o Playnite não — entrada sintética não sobe de nível.",
                 PluginIdentity.DisplayName);
+        }
+
+        // ---------------------------------------------------------------- regras por jogo
+
+        /// <summary>
+        /// As exceções por jogo, no menu de contexto da biblioteca — que é onde a pessoa está
+        /// quando pensa "neste aqui eu não quero".
+        ///
+        /// O item de ligar/desligar mostra o estado ATUAL no próprio texto. Menu que não diz o que
+        /// está valendo obriga a abrir a configuração para descobrir, e aí ele não serviu para nada.
+        /// </summary>
+        public override IEnumerable<GameMenuItem> GetGameMenuItems(GetGameMenuItemsArgs args)
+        {
+            const string sec = PluginIdentity.MenuSection;
+            var jogos = args.Games == null ? new List<Game>() : args.Games.ToList();
+            if (jogos.Count == 0)
+            {
+                yield break;
+            }
+
+            var regra = jogos.Count == 1 ? rules.Get(jogos[0].Id.ToString()) : new AutoCapture.GameRule();
+            var desligado = regra.Enabled.HasValue && !regra.Enabled.Value;
+
+            yield return new GameMenuItem
+            {
+                MenuSection = sec,
+                Description = desligado
+                    ? "Voltar a capturar neste jogo"
+                    : "Não capturar neste jogo",
+                Action = _ => SetRule(jogos, r => r.Enabled = desligado ? (bool?)null : false)
+            };
+
+            yield return new GameMenuItem
+            {
+                MenuSection = sec,
+                Description = "Intervalo do print neste jogo…",
+                Action = _ => AskInterval(jogos, true)
+            };
+
+            yield return new GameMenuItem
+            {
+                MenuSection = sec,
+                Description = "Intervalo do clipe neste jogo…",
+                Action = _ => AskInterval(jogos, false)
+            };
+
+            yield return new GameMenuItem
+            {
+                MenuSection = sec,
+                Description = "Usar o padrão neste jogo",
+                Action = _ =>
+                {
+                    foreach (var jogo in jogos)
+                    {
+                        rules.Clear(jogo.Id.ToString());
+                    }
+
+                    Notify(jogos.Count == 1
+                        ? "\"" + jogos[0].Name + "\" voltou a seguir o padrão."
+                        : jogos.Count + " jogos voltaram a seguir o padrão.");
+                }
+            };
+        }
+
+        /// <summary>Uma linha da lista de exceções, na tela de configuração.</summary>
+        public class RuleRow
+        {
+            public string GameId { get; set; }
+            public string Text { get; set; }
+        }
+
+        /// <summary>
+        /// As exceções com o NOME do jogo resolvido pela biblioteca. Regra cujo jogo não existe
+        /// mais aparece como órfã em vez de sumir: é o que permite limpá-la, e some sozinha do
+        /// disco quando a pessoa manda voltar ao padrão.
+        /// </summary>
+        public IList<RuleRow> RuleRows()
+        {
+            var linhas = new List<RuleRow>();
+
+            foreach (var par in rules.All())
+            {
+                var nome = par.Key;
+                try
+                {
+                    Guid id;
+                    if (Guid.TryParse(par.Key, out id))
+                    {
+                        var jogo = PlayniteApi.Database.Games.Get(id);
+                        nome = jogo != null ? jogo.Name : "(jogo removido da biblioteca)";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warn(ex, "Não consegui resolver o nome do jogo da regra.");
+                }
+
+                linhas.Add(new RuleRow { GameId = par.Key, Text = nome + " — " + par.Value.Summary() });
+            }
+
+            return linhas.OrderBy(l => l.Text, StringComparer.CurrentCultureIgnoreCase).ToList();
+        }
+
+        public void ClearRule(string gameId)
+        {
+            rules.Clear(gameId);
+        }
+
+        private void SetRule(IList<Game> jogos, Action<AutoCapture.GameRule> alterar)
+        {
+            foreach (var jogo in jogos)
+            {
+                var id = jogo.Id.ToString();
+                var regra = rules.Get(id);
+                alterar(regra);
+                rules.Set(id, regra);
+            }
+
+            if (jogos.Count == 1)
+            {
+                var regra = rules.Get(jogos[0].Id.ToString());
+                Notify("\"" + jogos[0].Name + "\": " + regra.Summary() + ".");
+            }
+            else
+            {
+                Notify(jogos.Count + " jogos atualizados.");
+            }
+        }
+
+        /// <summary>
+        /// Pergunta o intervalo. Texto vazio devolve o jogo ao padrão — por isso a caixa já abre
+        /// com o valor que está valendo, e não vazia: assim a pessoa vê o que vai mudar.
+        /// </summary>
+        private void AskInterval(IList<Game> jogos, bool print)
+        {
+            var atual = jogos.Count == 1
+                ? (print ? rules.Get(jogos[0].Id.ToString()).ScreenshotIntervalMinutes
+                         : rules.Get(jogos[0].Id.ToString()).ClipIntervalMinutes)
+                : null;
+
+            var padrao = print ? Settings.ScreenshotIntervalMinutes : Settings.ClipIntervalMinutes;
+
+            var resposta = PlayniteApi.Dialogs.SelectString(
+                (print ? "Minutos entre os prints" : "Minutos entre os clipes") +
+                " neste jogo. Deixe vazio para usar o padrão (" + padrao + " min); 0 desliga.",
+                PluginIdentity.DisplayName,
+                atual.HasValue ? atual.Value.ToString() : string.Empty);
+
+            if (!resposta.Result)
+            {
+                return;
+            }
+
+            int? minutos;
+            if (!AutoCapture.GameRules.TryParseInterval(resposta.SelectedString, out minutos))
+            {
+                PlayniteApi.Dialogs.ShowErrorMessage(
+                    "Não entendi \"" + resposta.SelectedString + "\". Use um número de 0 a 1440, ou deixe vazio para o padrão.",
+                    PluginIdentity.DisplayName);
+                return;
+            }
+
+            SetRule(jogos, r =>
+            {
+                if (print)
+                {
+                    r.ScreenshotIntervalMinutes = minutos;
+                }
+                else
+                {
+                    r.ClipIntervalMinutes = minutos;
+                }
+            });
         }
 
         public void OpenFolder(string path)

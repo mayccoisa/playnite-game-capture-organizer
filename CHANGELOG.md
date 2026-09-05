@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.7.0 — 2026-09-05
+
+Regras por jogo: dá para desligar a captura automática num jogo específico, ou dar a ele um
+intervalo diferente do padrão.
+
+### Onde se define
+
+No **menu de contexto do jogo**, na biblioteca — que é onde você está quando pensa "neste aqui eu
+não quero":
+
+- **Não capturar neste jogo** (o item mostra o estado atual e vira "Voltar a capturar")
+- **Intervalo do print neste jogo…**
+- **Intervalo do clipe neste jogo…**
+- **Usar o padrão neste jogo**
+
+Vale para vários jogos selecionados de uma vez.
+
+### O que é herdado, e o que é exceção
+
+Cada campo da regra é opcional, e **vazio significa "usa o padrão"** — não "desligado". É a
+diferença que faz o jogo sem regra própria acompanhar quando você muda o intervalo global; se a
+extensão gravasse o valor de hoje onde você não escolheu nada, ela congelaria o padrão daquele dia.
+
+**A chave mestra vence qualquer regra.** Com a captura automática desligada na configuração, um
+jogo marcado como "capturar" continua sem capturar. "Desliguei e continuou capturando" faria você
+procurar o defeito no lugar errado.
+
+Marcar um jogo como "não capturar" tira também a captura por conquista dele — é uma decisão só.
+
+### Onde elas ficam visíveis
+
+Na aba **Captura automática**, uma lista dos jogos com regra própria, com o resumo do que cada uma
+faz e o botão para voltar ao padrão. Regra invisível é regra esquecida: sem essa lista, um jogo
+silenciado há três meses vira "a extensão parou de funcionar neste jogo".
+
+Regra cujo jogo saiu da biblioteca aparece como órfã em vez de sumir — é o que permite limpá-la.
+
 ## 0.6.0 — 2026-09-05
 
 Tecla de captura que funciona **dentro do jogo**, e clipe de vídeo de tempos em tempos.

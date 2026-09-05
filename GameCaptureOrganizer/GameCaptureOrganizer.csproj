@@ -9,7 +9,7 @@
     <Deterministic>true</Deterministic>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>0.6.0</Version>
+    <Version>0.7.0</Version>
     <!-- Caminho da instalacao do Playnite; a CI passa o dela com -p:PlayniteDir=... -->
     <PlayniteDir>D:\Playnite</PlayniteDir>
   </PropertyGroup>

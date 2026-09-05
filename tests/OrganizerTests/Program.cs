@@ -30,6 +30,7 @@ namespace OrganizerTests
             PainelDeCapturas();
             ConquistaDaSteam();
             TeclaDeCaptura();
+            RegrasPorJogo();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -465,6 +466,85 @@ namespace OrganizerTests
 
             Eq("Ctrl+Shift+F12", GameCaptureOrganizer.Input.GlobalHotkey.Describe(true, false, true, "F12"));
             Eq("F9", GameCaptureOrganizer.Input.GlobalHotkey.Describe(false, false, false, "F9"));
+        }
+
+        /// <summary>
+        /// A mistura padrao × excecao do jogo. O que a regra nao diz TEM que continuar vindo do
+        /// padrao: guardar o valor de hoje onde a pessoa nao escolheu nada congelaria o padrao
+        /// daquele dia, e mudar o global depois nao alcancaria o jogo.
+        /// </summary>
+        private static void RegrasPorJogo()
+        {
+            var global = new OrganizerSettings
+            {
+                AutoCaptureEnabled = true,
+                ScreenshotIntervalMinutes = 15,
+                ClipIntervalMinutes = 0,
+                AchievementCaptureEnabled = true
+            };
+
+            // Sem regra: tudo do padrao.
+            var padrao = GameCaptureOrganizer.AutoCapture.EffectiveCapture.Resolve(global, null);
+            IsTrue(padrao.Enabled, "sem regra, a captura segue o padrão");
+            Eq("15", padrao.ScreenshotMinutes.ToString());
+            Eq("0", padrao.ClipMinutes.ToString());
+            IsTrue(padrao.Achievements, "sem regra, a conquista segue o padrão");
+
+            // Regra que so muda o print: o resto continua herdado.
+            var soPrint = new GameCaptureOrganizer.AutoCapture.GameRule { ScreenshotIntervalMinutes = 3 };
+            var comPrint = GameCaptureOrganizer.AutoCapture.EffectiveCapture.Resolve(global, soPrint);
+            Eq("3", comPrint.ScreenshotMinutes.ToString());
+            IsTrue(comPrint.Achievements, "a regra do print não mexe na conquista");
+
+            // Jogo desligado: nem print, nem conquista.
+            var desligado = new GameCaptureOrganizer.AutoCapture.GameRule { Enabled = false };
+            var semNada = GameCaptureOrganizer.AutoCapture.EffectiveCapture.Resolve(global, desligado);
+            IsTrue(!semNada.Enabled, "jogo marcado como sem captura fica sem captura");
+            IsTrue(!semNada.Achievements, "jogo sem captura também não captura por conquista");
+
+            // A chave mestra desligada vence QUALQUER regra: "desliguei e continuou capturando"
+            // faria a pessoa procurar o defeito no lugar errado.
+            var globalDesligado = new OrganizerSettings { AutoCaptureEnabled = false, ScreenshotIntervalMinutes = 15 };
+            var ligadoNoJogo = new GameCaptureOrganizer.AutoCapture.GameRule { Enabled = true };
+            IsTrue(!GameCaptureOrganizer.AutoCapture.EffectiveCapture.Resolve(globalDesligado, ligadoNoJogo).Enabled,
+                   "regra do jogo não liga a captura com a chave mestra desligada");
+
+            // Regra que fica vazia SAI do disco, senão a lista da tela enche de jogo que segue o padrão.
+            var arquivo = Path.Combine(Path.GetTempPath(), "gco-regras-" + Guid.NewGuid().ToString("N") + ".json");
+            try
+            {
+                var tabela = new GameCaptureOrganizer.AutoCapture.GameRules(arquivo);
+                tabela.Load();
+                tabela.Set("jogo-1", new GameCaptureOrganizer.AutoCapture.GameRule { Enabled = false });
+                Eq("1", tabela.Count.ToString());
+
+                tabela.Set("jogo-1", new GameCaptureOrganizer.AutoCapture.GameRule());
+                Eq("0", tabela.Count.ToString());
+
+                // E sobrevive ao disco.
+                tabela.Set("jogo-2", new GameCaptureOrganizer.AutoCapture.GameRule { ClipIntervalMinutes = 30 });
+                var relida = new GameCaptureOrganizer.AutoCapture.GameRules(arquivo);
+                relida.Load();
+                Eq("30", relida.Get("jogo-2").ClipIntervalMinutes.ToString());
+                IsTrue(relida.Get("jogo-3").IsEmpty, "jogo sem regra devolve regra vazia, nunca nulo");
+            }
+            finally
+            {
+                try { File.Delete(arquivo); } catch { }
+            }
+
+            // O texto do intervalo tem TRÊS estados: número, vazio (volta ao padrão) e inválido.
+            int? minutos;
+            IsTrue(GameCaptureOrganizer.AutoCapture.GameRules.TryParseInterval("5", out minutos) && minutos == 5,
+                   "número vira intervalo");
+            IsTrue(GameCaptureOrganizer.AutoCapture.GameRules.TryParseInterval("  ", out minutos) && minutos == null,
+                   "vazio volta ao padrão");
+            IsTrue(!GameCaptureOrganizer.AutoCapture.GameRules.TryParseInterval("dez", out minutos),
+                   "texto que não é número é recusado");
+            IsTrue(!GameCaptureOrganizer.AutoCapture.GameRules.TryParseInterval("-1", out minutos),
+                   "negativo é recusado");
+            IsTrue(GameCaptureOrganizer.AutoCapture.GameRules.TryParseInterval("0", out minutos) && minutos == 0,
+                   "zero é válido e significa desligar");
         }
 
         /// <summary>Um UserGameStats_*.bin minimo: raiz > cache > grupo 0 > data (int32).</summary>
