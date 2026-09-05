@@ -23,6 +23,7 @@ namespace GameCaptureOrganizer.AutoCapture
 
         private CancellationTokenSource cancellation;
         private Task loop;
+        private Task clipLoop;
         private string gameId;
         private string gameName;
 
@@ -48,12 +49,8 @@ namespace GameCaptureOrganizer.AutoCapture
                 return;
             }
 
-            var minutes = current.ScreenshotIntervalMinutes;
-            if (minutes <= 0)
-            {
-                log("Captura automática ligada, mas com intervalo zerado: nada será disparado.");
-                return;
-            }
+            var minutosPrint = current.ScreenshotIntervalMinutes;
+            var minutosClipe = current.ClipIntervalMinutes;
 
             lock (gate)
             {
@@ -63,11 +60,32 @@ namespace GameCaptureOrganizer.AutoCapture
                 this.gameName = gameName;
                 cancellation = new CancellationTokenSource();
                 var token = cancellation.Token;
-                loop = Task.Run(() => Loop(minutes, token), token);
+
+                // Dois relógios independentes, e não um só com contagem: print a cada 5 minutos e
+                // clipe a cada 30 não têm divisor comum útil, e amarrar os dois faria o intervalo
+                // de um puxar o do outro.
+                if (minutosPrint > 0)
+                {
+                    loop = Task.Run(() => Loop(minutosPrint, false, token), token);
+                }
+
+                if (minutosClipe > 0)
+                {
+                    clipLoop = Task.Run(() => Loop(minutosClipe, true, token), token);
+                }
             }
 
-            log(string.Format("Captura automática ligada para \"{0}\": print a cada {1} min pelo {2}.",
-                              gameName, minutes, trigger.Name));
+            if (minutosPrint <= 0 && minutosClipe <= 0)
+            {
+                log("Captura automática ligada, mas com os dois intervalos zerados: nada será disparado sozinho.");
+                return;
+            }
+
+            log(string.Format("Captura automática ligada para \"{0}\" pelo {1}: print {2}, clipe {3}.",
+                              gameName,
+                              trigger.Name,
+                              minutosPrint > 0 ? "a cada " + minutosPrint + " min" : "desligado",
+                              minutosClipe > 0 ? "a cada " + minutosClipe + " min" : "desligado"));
         }
 
         public void Stop()
@@ -94,6 +112,11 @@ namespace GameCaptureOrganizer.AutoCapture
                 {
                     loop.Wait(TimeSpan.FromSeconds(2));
                 }
+
+                if (clipLoop != null)
+                {
+                    clipLoop.Wait(TimeSpan.FromSeconds(2));
+                }
             }
             catch (Exception)
             {
@@ -103,6 +126,7 @@ namespace GameCaptureOrganizer.AutoCapture
                 try { cancellation.Dispose(); } catch (Exception) { }
                 cancellation = null;
                 loop = null;
+                clipLoop = null;
                 gameId = null;
                 gameName = null;
             }
@@ -111,43 +135,47 @@ namespace GameCaptureOrganizer.AutoCapture
         /// <summary>Dispara na hora, por pedido da pessoa (menu ou tecla). Vale mesmo sem sessao aberta.</summary>
         public bool CaptureNow(CaptureReason reason)
         {
-            var quando = DateTime.UtcNow;
-            if (!trigger.TakeScreenshot())
-            {
-                return false;
-            }
+            return Capture(reason, false, false);
+        }
 
-            triggers.Add(reason, gameId, gameName, quando);
-            Confirm();
-            return true;
+        /// <summary>A captura de uma conquista: print e, se pedido, o clipe dos ultimos segundos.</summary>
+        public bool CaptureForAchievement(bool alsoClip)
+        {
+            return Capture(CaptureReason.Conquista, alsoClip, false);
         }
 
         /// <summary>
-        /// A captura de uma conquista: print e, se pedido, o clipe dos ultimos segundos.
+        /// Uma captura, com o motivo carimbado no caderno de gatilhos.
         ///
-        /// Os dois atalhos saem com respiro entre eles. Mandar Win+Alt+PrtScn e Win+Alt+G colados
-        /// faz o Game Bar tratar a segunda combinacao como repeticao da primeira, e o clipe nao
-        /// sai — sem erro nenhum, o que e pior do que falhar.
+        /// Quando sai print E clipe, os dois atalhos saem com respiro entre eles. Mandar
+        /// Win+Alt+PrtScn e Win+Alt+G colados faz o Game Bar tratar a segunda combinacao como
+        /// repeticao da primeira, e o clipe nao sai — sem erro nenhum, o que e pior do que falhar.
         /// </summary>
-        public bool CaptureForAchievement(bool alsoClip)
+        public bool Capture(CaptureReason reason, bool clip, bool clipOnly)
         {
             var feito = false;
 
-            var quandoPrint = DateTime.UtcNow;
-            if (trigger.TakeScreenshot())
+            if (!clipOnly)
             {
-                triggers.Add(CaptureReason.Conquista, gameId, gameName, quandoPrint);
-                feito = true;
+                var quandoPrint = DateTime.UtcNow;
+                if (trigger.TakeScreenshot())
+                {
+                    triggers.Add(reason, gameId, gameName, quandoPrint);
+                    feito = true;
+                }
             }
 
-            if (alsoClip)
+            if (clip || clipOnly)
             {
-                Thread.Sleep(700);
+                if (!clipOnly)
+                {
+                    Thread.Sleep(700);
+                }
 
                 var quandoClipe = DateTime.UtcNow;
                 if (trigger.SaveClip())
                 {
-                    triggers.Add(CaptureReason.Conquista, gameId, gameName, quandoClipe);
+                    triggers.Add(reason, gameId, gameName, quandoClipe);
                     feito = true;
                 }
             }
@@ -184,7 +212,10 @@ namespace GameCaptureOrganizer.AutoCapture
             }
         }
 
-        private async Task Loop(int minutes, CancellationToken token)
+        /// <summary>
+        /// O relogio. <paramref name="clip"/> decide se a volta pede clipe (Win+Alt+G) ou print.
+        /// </summary>
+        private async Task Loop(int minutes, bool clip, CancellationToken token)
         {
             var interval = TimeSpan.FromMinutes(minutes);
 
@@ -192,8 +223,9 @@ namespace GameCaptureOrganizer.AutoCapture
             {
                 while (!token.IsCancellationRequested)
                 {
-                    // Dorme ANTES do primeiro print: o jogo acabou de abrir e a tela e a de
-                    // carregamento, que nao e lembranca de nada.
+                    // Dorme ANTES da primeira captura: o jogo acabou de abrir e a tela e a de
+                    // carregamento, que nao e lembranca de nada. No clipe isso vale duas vezes —
+                    // o buffer do Game Bar mal comecou a encher.
                     try
                     {
                         await Task.Delay(interval, token).ConfigureAwait(false);
@@ -216,12 +248,7 @@ namespace GameCaptureOrganizer.AutoCapture
                         break;
                     }
 
-                    var quando = DateTime.UtcNow;
-                    if (trigger.TakeScreenshot())
-                    {
-                        triggers.Add(CaptureReason.Periodico, gameId, gameName, quando);
-                        Confirm();
-                    }
+                    Capture(CaptureReason.Periodico, false, clip);
                 }
             }
             catch (Exception ex)

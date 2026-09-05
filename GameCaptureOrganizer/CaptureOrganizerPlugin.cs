@@ -28,6 +28,7 @@ namespace GameCaptureOrganizer
         private readonly AutoCapture.ICaptureTrigger trigger;
         private readonly AutoCapture.CaptureScheduler scheduler;
         private Achievements.SteamAchievementWatcher achievements;
+        private Input.GlobalHotkey hotkey;
         private readonly string logPath;
         private int pendingRun;
 
@@ -62,8 +63,65 @@ namespace GameCaptureOrganizer
 
         // ---------------------------------------------------------------- ciclo de vida
 
+        // ---------------------------------------------------------------- atalho de teclado
+
+        /// <summary>
+        /// (Re)registra a tecla de captura. Roda na thread de UI porque a janela de mensagens que
+        /// recebe o aviso do Windows nasce presa à thread que a criou.
+        /// </summary>
+        public void RefreshHotkey()
+        {
+            try
+            {
+                PlayniteApi.MainView.UIDispatcher.Invoke(() =>
+                {
+                    if (hotkey == null)
+                    {
+                        hotkey = new Input.GlobalHotkey(
+                            () => CaptureByHotkey(),
+                            msg => logger.Info("[Atalho] " + msg));
+                    }
+
+                    if (!Settings.HotkeyEnabled)
+                    {
+                        hotkey.Unregister();
+                        return;
+                    }
+
+                    hotkey.Register(Settings.HotkeyCtrl, Settings.HotkeyAlt, Settings.HotkeyShift, Settings.HotkeyKey);
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Não consegui preparar o atalho de captura.");
+            }
+        }
+
+        /// <summary>
+        /// A tecla foi apertada. O trabalho sai da thread de UI na hora: o Playnite está no meio da
+        /// fila de mensagens do Windows, e mandar dois atalhos com espera entre eles ali dentro
+        /// congelaria a janela por quase um segundo.
+        /// </summary>
+        private void CaptureByHotkey()
+        {
+            var comClipe = Settings.HotkeySavesClip;
+            Task.Run(() =>
+            {
+                try
+                {
+                    scheduler.Capture(AutoCapture.CaptureReason.Manual, comClipe, false);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "A captura pelo atalho falhou.");
+                }
+            });
+        }
+
         public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
         {
+            RefreshHotkey();
+
             if (!Settings.OrganizeOnStartup)
             {
                 return;
@@ -316,8 +374,36 @@ namespace GameCaptureOrganizer
 
         public void OnSettingsSaved()
         {
-            // Nada a recarregar: o servico le a configuracao a cada passada, de proposito.
-            // Guardar uma copia aqui e o que faria "salvei e continuou no caminho antigo".
+            // O serviço lê a configuração a cada passada, de propósito: guardar uma cópia aqui é o
+            // que faria "salvei e continuou no caminho antigo". A exceção é o atalho, que vive no
+            // Windows e não numa variável — trocar a tecla exige tirar a antiga do registro.
+            RefreshHotkey();
+        }
+
+        public override void Dispose()
+        {
+            try
+            {
+                if (hotkey != null)
+                {
+                    hotkey.Dispose();
+                    hotkey = null;
+                }
+
+                scheduler.Dispose();
+
+                if (achievements != null)
+                {
+                    achievements.Dispose();
+                    achievements = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warn(ex, "Falha ao encerrar a captura automática.");
+            }
+
+            base.Dispose();
         }
 
         // ---------------------------------------------------------------- biblioteca

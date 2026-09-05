@@ -15,6 +15,9 @@
     <PlayniteDir>D:\Playnite</PlayniteDir>
     <SrcDir>$(MSBuildThisFileDirectory)..\..\GameCaptureOrganizer</SrcDir>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Só para alcançar KeyInterop e HwndSource, de que o GlobalHotkey depende. Nenhuma janela é
+         aberta aqui: o que se exercita é a tradução do nome da tecla, que é lógica pura. -->
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +33,9 @@
     <Compile Include="$(SrcDir)\Gallery\GalleryScanner.cs" />
     <Compile Include="$(SrcDir)\Achievements\SteamKeyValues.cs" />
     <Compile Include="$(SrcDir)\Achievements\SteamStats.cs" />
+    <!-- O atalho depende de janela do Windows, mas a tradução do nome da tecla é pura — e é
+         justamente ela que, errada, roubaria o atalho de outro programa. -->
+    <Compile Include="$(SrcDir)\Input\GlobalHotkey.cs" />
   </ItemGroup>
 
   <ItemGroup>

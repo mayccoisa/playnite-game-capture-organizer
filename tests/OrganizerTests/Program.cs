@@ -29,6 +29,7 @@ namespace OrganizerTests
             MotivoDoGatilho();
             PainelDeCapturas();
             ConquistaDaSteam();
+            TeclaDeCaptura();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -446,6 +447,24 @@ namespace OrganizerTests
             {
                 try { Directory.Delete(pasta, true); } catch { }
             }
+        }
+
+        /// <summary>
+        /// A traducao do nome da tecla para o codigo do Windows. Nome invalido tem que devolver
+        /// ZERO, e nao uma tecla qualquer: registrar a combinacao errada tiraria de outro programa
+        /// um atalho que a pessoa nunca pediu.
+        /// </summary>
+        private static void TeclaDeCaptura()
+        {
+            IsTrue(GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey("F12") == 0x7B, "F12 é 0x7B");
+            IsTrue(GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey("f12") == 0x7B, "o nome não diferencia maiúscula");
+            IsTrue(GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey("PrintScreen") == 0x2C, "PrintScreen é 0x2C");
+            IsTrue(GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey("banana") == 0, "nome inválido devolve zero");
+            IsTrue(GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey("") == 0, "nome vazio devolve zero");
+            IsTrue(GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey(null) == 0, "nome nulo devolve zero");
+
+            Eq("Ctrl+Shift+F12", GameCaptureOrganizer.Input.GlobalHotkey.Describe(true, false, true, "F12"));
+            Eq("F9", GameCaptureOrganizer.Input.GlobalHotkey.Describe(false, false, false, "F9"));
         }
 
         /// <summary>Um UserGameStats_*.bin minimo: raiz > cache > grupo 0 > data (int32).</summary>

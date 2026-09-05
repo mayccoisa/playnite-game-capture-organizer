@@ -31,6 +31,7 @@ namespace GameCaptureOrganizer.Ui
             UpdatePreview();
             RefreshGameBarStatus();
             RefreshSteamStatus();
+            RefreshHotkeyStatus();
         }
 
         // ---------------------------------------------------------------- captura automatica
@@ -107,6 +108,26 @@ namespace GameCaptureOrganizer.Ui
         private void OnCheckSteam(object sender, RoutedEventArgs e)
         {
             RefreshSteamStatus();
+        }
+
+        /// <summary>
+        /// Diz qual combinação está valendo AGORA, e não a que está escrita nos campos: a tecla só
+        /// entra em vigor ao salvar, e mostrar a escolhida como se já valesse seria mentir.
+        /// </summary>
+        private void RefreshHotkeyStatus()
+        {
+            var descricao = GameCaptureOrganizer.Input.GlobalHotkey.Describe(
+                Settings.HotkeyCtrl, Settings.HotkeyAlt, Settings.HotkeyShift, Settings.HotkeyKey);
+
+            if (!Settings.HotkeyEnabled)
+            {
+                HotkeyStatusText.Text = "Atalho desligado.";
+                return;
+            }
+
+            HotkeyStatusText.Text = GameCaptureOrganizer.Input.GlobalHotkey.VirtualKey(Settings.HotkeyKey) == 0
+                ? "Não conheço a tecla \"" + Settings.HotkeyKey + "\". Enquanto ela não for válida, o atalho fica desligado."
+                : "Ao salvar, o atalho passa a ser " + descricao + ".";
         }
 
         private void OnCaptureNow(object sender, RoutedEventArgs e)

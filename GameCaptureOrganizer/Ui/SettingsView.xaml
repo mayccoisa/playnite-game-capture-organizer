@@ -212,6 +212,13 @@
                                            Text="O primeiro print sai depois do primeiro intervalo, não na abertura: tela de carregamento não é lembrança de nada. Nada é disparado com o Playnite parado na biblioteca." />
 
                                 <Border Style="{StaticResource Separator}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Clipe de vídeo a cada quantos minutos (0 desliga)" />
+                                <TextBox Width="90" HorizontalAlignment="Left"
+                                         Text="{Binding Settings.ClipIntervalMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Salva os últimos segundos, do jeito que o Game Bar estiver configurado. Nasce desligado porque clipe de tempos em tempos ocupa disco de verdade — e exige a gravação em segundo plano ligada." />
+
+                                <Border Style="{StaticResource Separator}" />
                                 <CheckBox Content="Tocar um som curto quando a extensão pedir a captura"
                                           IsChecked="{Binding Settings.PlaySoundOnCapture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Style="{StaticResource HintText}"
@@ -223,6 +230,30 @@
                                          Text="{Binding Settings.TriggerToleranceSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Style="{StaticResource HintText}"
                                            Text="É o que liga o arquivo que o Game Bar salvou ao motivo pelo qual ele foi pedido, para o marcador {Motivo} funcionar." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Tecla de captura" />
+                                <CheckBox Margin="0,12,0,0"
+                                          Content="Capturar ao apertar a tecla, com o jogo em primeiro plano"
+                                          IsChecked="{Binding Settings.HotkeyEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <CheckBox Content="Ctrl" Margin="0,0,12,0"
+                                              IsChecked="{Binding Settings.HotkeyCtrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox Content="Alt" Margin="0,0,12,0"
+                                              IsChecked="{Binding Settings.HotkeyAlt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox Content="Shift" Margin="0,0,12,0"
+                                              IsChecked="{Binding Settings.HotkeyShift, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Width="120" Text="{Binding Settings.HotkeyKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </WrapPanel>
+                                <CheckBox Margin="0,10,0,0" Content="A tecla salva também o clipe dos últimos segundos"
+                                          IsChecked="{Binding Settings.HotkeySavesClip, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock x:Name="HotkeyStatusText" Style="{StaticResource StatusValue}"
+                                           TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Nome da tecla: F1 a F12, PrintScreen, Insert, Home, End, PageUp, PageDown. O padrão é Ctrl+Shift+F12 porque F12 sozinho é do overlay da Steam. A tecla passa a valer ao salvar; se outro programa já usar a combinação, o registro falha e o aviso aparece aqui." />
                             </StackPanel>
                         </Border>
 

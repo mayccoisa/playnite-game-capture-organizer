@@ -156,6 +156,66 @@ namespace GameCaptureOrganizer
         private int screenshotIntervalMinutes = 15;
         private int triggerToleranceSeconds = 90;
         private bool playSoundOnCapture = true;
+        private int clipIntervalMinutes;
+        private bool hotkeyEnabled = true;
+        private bool hotkeyCtrl = true;
+        private bool hotkeyAlt;
+        private bool hotkeyShift = true;
+        private string hotkeyKey = "F12";
+        private bool hotkeySavesClip = true;
+
+        /// <summary>
+        /// De quantos em quantos minutos salvar o clipe dos ultimos segundos. Zero desliga, e e o
+        /// padrao: clipe de tempos em tempos ocupa disco de verdade, e quem quer isso pede.
+        /// </summary>
+        public int ClipIntervalMinutes
+        {
+            get { return clipIntervalMinutes; }
+            set { SetValue(ref clipIntervalMinutes, value); }
+        }
+
+        /// <summary>Tecla que captura na hora, com o jogo em primeiro plano.</summary>
+        public bool HotkeyEnabled
+        {
+            get { return hotkeyEnabled; }
+            set { SetValue(ref hotkeyEnabled, value); }
+        }
+
+        public bool HotkeyCtrl
+        {
+            get { return hotkeyCtrl; }
+            set { SetValue(ref hotkeyCtrl, value); }
+        }
+
+        public bool HotkeyAlt
+        {
+            get { return hotkeyAlt; }
+            set { SetValue(ref hotkeyAlt, value); }
+        }
+
+        public bool HotkeyShift
+        {
+            get { return hotkeyShift; }
+            set { SetValue(ref hotkeyShift, value); }
+        }
+
+        /// <summary>
+        /// O nome da tecla (F1…F12, PrintScreen, Insert…). O padrao e Ctrl+Shift+F12: F12 sozinho
+        /// e do overlay da Steam, e roubar a tecla de quem ja usa e a receita para "parou de
+        /// funcionar e nao sei por que".
+        /// </summary>
+        public string HotkeyKey
+        {
+            get { return hotkeyKey; }
+            set { SetValue(ref hotkeyKey, value); }
+        }
+
+        /// <summary>Se a tecla salva tambem o clipe dos ultimos segundos, alem do print.</summary>
+        public bool HotkeySavesClip
+        {
+            get { return hotkeySavesClip; }
+            set { SetValue(ref hotkeySavesClip, value); }
+        }
         private bool achievementCaptureEnabled = true;
         private bool achievementSavesClip = true;
         private string steamFolder = string.Empty;

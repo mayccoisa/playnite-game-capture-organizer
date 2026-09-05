@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.6.0 — 2026-09-05
+
+Tecla de captura que funciona **dentro do jogo**, e clipe de vídeo de tempos em tempos.
+
+### Tecla de captura
+
+Uma combinação registrada no Windows dispara print — e o clipe dos últimos segundos, se você
+quiser — com o jogo em primeiro plano. O padrão é **Ctrl+Shift+F12**, e dá para trocar na aba
+Captura automática (F1 a F12, PrintScreen, Insert, Home, End, PageUp, PageDown).
+
+O padrão não é F12 sozinho de propósito: essa é a tecla do overlay da Steam, e roubar o atalho de
+quem já usa é a receita de "parou de funcionar e não sei por quê". Pelo mesmo motivo, se outro
+programa já tiver registrado a combinação escolhida, a extensão **não** toma a tecla — ela avisa
+na tela de configuração para você escolher outra.
+
+A tecla é registrada no Windows (`RegisterHotKey`), e não por um gancho global de teclado. O
+gancho veria todas as teclas do sistema, precisaria devolver rápido para não engasgar a digitação
+inteira do Windows, e é a assinatura que antivírus trata como keylogger.
+
+### Clipe de tempos em tempos
+
+Um segundo intervalo, independente do print, que salva os últimos segundos pelo Game Bar. Nasce
+**desligado** (0 minutos): clipe periódico ocupa disco de verdade, e depende da gravação em
+segundo plano do Game Bar estar ligada.
+
+Os dois relógios são independentes: print a cada 5 minutos e clipe a cada 30 não têm divisor comum
+útil, e amarrar um ao outro faria o intervalo de um puxar o do outro.
+
+### Detalhe que evita clipe que não sai
+
+Quando print e clipe saem juntos, há um respiro entre os dois atalhos. Mandar `Win+Alt+PrtScn` e
+`Win+Alt+G` colados faz o Game Bar tratar a segunda combinação como repetição da primeira, e o
+clipe não sai — sem erro nenhum, o que é pior do que falhar.
+
 ## 0.5.0 — 2026-09-05
 
 Captura quando uma **conquista da Steam** é destravada: print na hora e, se a gravação em segundo
