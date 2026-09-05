@@ -37,6 +37,7 @@
          justamente ela que, errada, roubaria o atalho de outro programa. -->
     <Compile Include="$(SrcDir)\Input\GlobalHotkey.cs" />
     <Compile Include="$(SrcDir)\AutoCapture\GameRules.cs" />
+    <Compile Include="$(SrcDir)\Achievements\RetroAchievements.cs" />
   </ItemGroup>
 
   <ItemGroup>

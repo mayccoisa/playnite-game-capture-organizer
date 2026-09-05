@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.8.0 — 2026-09-05
+
+Conquistas de **emulador**, pelo RetroAchievements — a última peça da camada de captura automática.
+
+### Como funciona
+
+Diferente da Steam, aqui **não existe arquivo local para observar**: o emulador fala direto com o
+servidor do RetroAchievements. Então o caminho é outro, e o preço está à vista:
+
+- precisa da **credencial da sua conta** (usuário e chave de API web do site), que você informa na
+  aba Captura automática — não há descoberta automática possível, e credencial não se inventa;
+- é **consulta de tempos em tempos** (60 segundos por padrão, mínimo 30), não aviso instantâneo;
+- só roda enquanto um jogo está aberto pelo Playnite, e só nos jogos que não são da Steam — esses
+  já têm o caminho local, que é melhor.
+
+O botão **Testar a conexão** prova a credencial contra o servidor de verdade, em vez de só
+validar o formato: chave com um caractere trocado passa em qualquer validação local e falharia
+calada na hora do jogo.
+
+### O que você precisa saber antes de ligar
+
+- **A consulta pergunta pelas conquistas recentes da CONTA, sem filtrar por jogo.** O código do
+  jogo no RetroAchievements não existe na biblioteca do Playnite, e adivinhá-lo pelo nome erraria
+  em silêncio. Consequência real: conquista que a mesma conta destravar em outro aparelho ao mesmo
+  tempo também dispara captura aqui.
+- **A chave fica em texto puro** no arquivo de configuração da extensão, como todas as outras
+  opções. Ela nunca aparece no log — a URL da consulta a carrega no meio, e log é coisa que se
+  compartilha.
+- **Erro de rede não dispara nada e não derruba a vigia.** A internet cair no meio do jogo é
+  ocorrência esperada; o intervalo dobra a cada falha seguida, até dez minutos, e volta ao normal
+  quando o servidor responde. Credencial recusada é dita uma vez, não a cada minuto.
+- **Resposta de erro não é "nenhuma conquista".** Credencial errada devolve um objeto com
+  mensagem, e não uma lista vazia; tratar os dois como iguais faria a consulta seguinte ver tudo
+  como novo e o jogo inteiro viraria uma rajada de capturas.
+
+### Com esta versão, a camada de captura automática está completa
+
+Print de tempos em tempos, clipe periódico, tecla de captura, conquista da Steam, conquista de
+emulador, regras por jogo e o painel lateral para ver tudo — todos em cima do Xbox Game Bar, que
+continua sendo quem grava.
+
 ## 0.7.0 — 2026-09-05
 
 Regras por jogo: dá para desligar a captura automática num jogo específico, ou dar a ele um

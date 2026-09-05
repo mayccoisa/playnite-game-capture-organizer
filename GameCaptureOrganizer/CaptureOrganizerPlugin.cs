@@ -28,6 +28,7 @@ namespace GameCaptureOrganizer
         private readonly AutoCapture.ICaptureTrigger trigger;
         private readonly AutoCapture.CaptureScheduler scheduler;
         private Achievements.SteamAchievementWatcher achievements;
+        private Achievements.RetroAchievementsWatcher retro;
         private Input.GlobalHotkey hotkey;
         private readonly AutoCapture.GameRules rules;
         private readonly string logPath;
@@ -206,10 +207,16 @@ namespace GameCaptureOrganizer
         }
 
         /// <summary>
-        /// Liga a vigia das conquistas da Steam para este jogo, quando ele é da biblioteca Steam.
+        /// Liga a vigia de conquistas do jogo: a da Steam quando ele vem da biblioteca Steam, a do
+        /// RetroAchievements no resto.
         ///
-        /// Jogo mapeado à mão não tem conquista para observar, e isso não é falha: o print de
-        /// tempos em tempos continua valendo para ele, que era justamente o pedido original.
+        /// São dois caminhos porque as fontes são opostas: a Steam grava um arquivo local, que dá
+        /// para observar de graça e no instante; o RetroAchievements só existe no servidor deles,
+        /// e exige credencial e consulta de tempos em tempos. Um "if" no meio de um watcher só
+        /// faria a falha de rede derrubar o vigia de arquivo.
+        ///
+        /// Jogo que não tem conquista em nenhum dos dois continua com o print de tempos em tempos,
+        /// que era o pedido original — e isso não é falha.
         /// </summary>
         private void StartAchievementWatch(Game game, AutoCapture.GameBarState estado, AutoCapture.EffectiveCapture plano)
         {
@@ -218,9 +225,13 @@ namespace GameCaptureOrganizer
                 return;
             }
 
+            var salvarClipeNaConquista = Settings.AchievementSavesClip && estado.CanSaveClip;
+
             string appId;
             if (!Achievements.SteamStats.TryGetAppId(game.PluginId, game.GameId, out appId))
             {
+                // Não é jogo da Steam: a conquista, se existir, é do RetroAchievements.
+                StartRetroWatch(salvarClipeNaConquista);
                 return;
             }
 
@@ -252,6 +263,28 @@ namespace GameCaptureOrganizer
             achievements.Start();
         }
 
+        /// <summary>
+        /// Vigia do RetroAchievements. Sem credencial ela nem começa — e o silêncio aqui é
+        /// deliberado: quem não configurou nada não fez nada errado, e um aviso por sessão de jogo
+        /// de emulador viraria ruído em quem só quer o print periódico.
+        /// </summary>
+        private void StartRetroWatch(bool salvarClipe)
+        {
+            if (string.IsNullOrWhiteSpace(Settings.RetroUser) || string.IsNullOrWhiteSpace(Settings.RetroApiKey))
+            {
+                return;
+            }
+
+            retro = new Achievements.RetroAchievementsWatcher(
+                Settings.RetroUser,
+                Settings.RetroApiKey,
+                Settings.RetroPollSeconds,
+                _ => scheduler.CaptureForAchievement(salvarClipe),
+                msg => logger.Info("[RetroAchievements] " + msg));
+
+            retro.Start();
+        }
+
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
             try
@@ -262,6 +295,12 @@ namespace GameCaptureOrganizer
                 {
                     achievements.Dispose();
                     achievements = null;
+                }
+
+                if (retro != null)
+                {
+                    retro.Dispose();
+                    retro = null;
                 }
             }
             catch (Exception ex)
@@ -407,6 +446,12 @@ namespace GameCaptureOrganizer
                 {
                     achievements.Dispose();
                     achievements = null;
+                }
+
+                if (retro != null)
+                {
+                    retro.Dispose();
+                    retro = null;
                 }
             }
             catch (Exception ex)

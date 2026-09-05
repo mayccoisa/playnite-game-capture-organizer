@@ -31,6 +31,7 @@ namespace OrganizerTests
             ConquistaDaSteam();
             TeclaDeCaptura();
             RegrasPorJogo();
+            ConquistaDoRetroAchievements();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -545,6 +546,48 @@ namespace OrganizerTests
                    "negativo é recusado");
             IsTrue(GameCaptureOrganizer.AutoCapture.GameRules.TryParseInterval("0", out minutos) && minutos == 0,
                    "zero é válido e significa desligar");
+        }
+
+        /// <summary>
+        /// A leitura da resposta do RetroAchievements. Sem rede: o que se exercita e a
+        /// interpretacao do JSON, que e onde mora o erro que faria a extensao capturar errado.
+        /// </summary>
+        private static void ConquistaDoRetroAchievements()
+        {
+            var resposta = "[{\"AchievementID\":\"12345\",\"Title\":\"Primeira fase\"}," +
+                           "{\"AchievementID\":\"67890\",\"Title\":\"Sem levar dano\"}]";
+
+            var lido = GameCaptureOrganizer.Achievements.RetroAchievements.Parse(resposta);
+            IsTrue(lido.Ok, "lista de conquistas é lida");
+            Eq("2", lido.Ids.Count.ToString());
+            IsTrue(lido.Ids.Contains("12345"), "o id da conquista é o da resposta");
+
+            // Lista vazia e resposta LEGITIMA: ninguem destravou nada na janela.
+            var vazia = GameCaptureOrganizer.Achievements.RetroAchievements.Parse("[]");
+            IsTrue(vazia.Ok, "lista vazia é resposta válida");
+            Eq("0", vazia.Ids.Count.ToString());
+
+            // Credencial errada devolve um OBJETO com mensagem, e nao uma lista. Isso e FALHA, e
+            // nao "nenhuma conquista": tratado como vazio, a leitura seguinte veria tudo como novo
+            // e o jogo inteiro viraria uma rajada de capturas.
+            var erro = GameCaptureOrganizer.Achievements.RetroAchievements.Parse("{\"Error\":\"Invalid API Key\"}");
+            IsTrue(!erro.Ok, "objeto de erro não é lista vazia");
+            Eq("Invalid API Key", erro.Error);
+
+            IsTrue(!GameCaptureOrganizer.Achievements.RetroAchievements.Parse("").Ok, "resposta vazia é falha");
+            IsTrue(!GameCaptureOrganizer.Achievements.RetroAchievements.Parse("<html>502</html>").Ok,
+                   "página de erro do servidor é falha, não conquista");
+
+            // Sem credencial, nem tenta a rede.
+            var semCredencial = GameCaptureOrganizer.Achievements.RetroAchievements.Read("", "", 10);
+            IsTrue(!semCredencial.Ok, "sem usuário e chave a consulta nem sai");
+
+            // Só o que ENTROU conta, igual à Steam.
+            var antes = new HashSet<string> { "1", "2" };
+            var depois = new HashSet<string> { "1", "2", "3" };
+            Eq("1", GameCaptureOrganizer.Achievements.RetroAchievements.CountNew(antes, depois).ToString());
+            Eq("0", GameCaptureOrganizer.Achievements.RetroAchievements.CountNew(depois, antes).ToString());
+            Eq("0", GameCaptureOrganizer.Achievements.RetroAchievements.CountNew(null, depois).ToString());
         }
 
         /// <summary>Um UserGameStats_*.bin minimo: raiz > cache > grupo 0 > data (int32).</summary>

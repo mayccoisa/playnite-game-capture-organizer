@@ -111,6 +111,36 @@ namespace GameCaptureOrganizer.Ui
             RefreshSteamStatus();
         }
 
+        /// <summary>
+        /// Prova a credencial contra o servidor de verdade, em vez de só validar o formato: chave
+        /// com um caractere trocado passa em qualquer validação local e falha calada na hora do
+        /// jogo. Roda fora da thread de UI porque é rede.
+        /// </summary>
+        private void OnTestRetro(object sender, RoutedEventArgs e)
+        {
+            var usuario = Settings.RetroUser;
+            var chave = Settings.RetroApiKey;
+
+            if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(chave))
+            {
+                RetroStatusText.Text = "Preencha o usuário e a chave para testar.";
+                return;
+            }
+
+            RetroStatusText.Text = "Consultando…";
+
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                var resultado = GameCaptureOrganizer.Achievements.RetroAchievements.Read(usuario, chave, 60);
+                var texto = resultado.Ok
+                    ? "Conectado como " + usuario + ". " + resultado.Ids.Count +
+                      " conquista(s) na última hora — zero aqui é normal se você não jogou agora."
+                    : "Não deu certo: " + resultado.Error;
+
+                Dispatcher.BeginInvoke(new Action(() => RetroStatusText.Text = texto));
+            });
+        }
+
         private void RefreshRules()
         {
             try

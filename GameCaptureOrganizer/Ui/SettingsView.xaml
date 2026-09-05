@@ -283,6 +283,30 @@
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Conquistas de emulador (RetroAchievements)" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Para os jogos de emulador, que a Steam não vê. Aqui não existe arquivo local para observar: o emulador fala direto com o servidor deles, então é preciso a credencial da sua conta e a consulta é de tempos em tempos, não instantânea." />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Usuário" />
+                                <TextBox Text="{Binding Settings.RetroUser, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Chave de API web (a do site, não a senha)" />
+                                <TextBox Text="{Binding Settings.RetroApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Consultar a cada quantos segundos (mínimo 30)" />
+                                <TextBox Width="90" HorizontalAlignment="Left"
+                                         Text="{Binding Settings.RetroPollSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock x:Name="RetroStatusText" Style="{StaticResource StatusValue}"
+                                           TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Style="{StaticResource GhostButton}" Content="Testar a conexão" Click="OnTestRetro" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="A chave fica em texto puro no arquivo de configuração da extensão, como o resto das opções — quem guarda uma credencial merece saber onde ela dorme. Ela nunca aparece no log." />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="A consulta pergunta pelas conquistas recentes da CONTA, sem filtrar por jogo: o código do jogo no RetroAchievements não existe na biblioteca do Playnite, e adivinhá-lo pelo nome erraria em silêncio. Consequência: conquista que a mesma conta destravar em outro aparelho ao mesmo tempo também dispara captura aqui." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Jogos com regra própria" />
                                 <TextBlock Style="{StaticResource HintText}"
                                            Text="A regra de um jogo se define no menu de contexto dele, na biblioteca: não capturar, ou usar outro intervalo. Aqui é só onde elas ficam visíveis — regra invisível é regra esquecida." />

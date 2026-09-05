@@ -219,6 +219,40 @@ namespace GameCaptureOrganizer
         private bool achievementCaptureEnabled = true;
         private bool achievementSavesClip = true;
         private string steamFolder = string.Empty;
+        private string retroUser = string.Empty;
+        private string retroApiKey = string.Empty;
+        private int retroPollSeconds = 60;
+
+        /// <summary>
+        /// Conta do RetroAchievements. Vazia desliga a vigia dos jogos de emulador — nao ha
+        /// descoberta automatica possivel aqui, e inventar credencial nao existe.
+        /// </summary>
+        public string RetroUser
+        {
+            get { return retroUser; }
+            set { SetValue(ref retroUser, value); }
+        }
+
+        /// <summary>
+        /// A chave de API web da conta (a do site, nao a senha).
+        ///
+        /// Ela fica em texto puro no arquivo de configuracao da extensao, como todo o resto —
+        /// isso esta dito na tela, porque quem guarda uma credencial merece saber onde ela dorme.
+        /// E ela nunca aparece em log: a URL da consulta a carrega no meio, e log e print sao
+        /// coisas que se compartilham.
+        /// </summary>
+        public string RetroApiKey
+        {
+            get { return retroApiKey; }
+            set { SetValue(ref retroApiKey, value); }
+        }
+
+        /// <summary>De quantos em quantos segundos perguntar ao RetroAchievements. Minimo de 30.</summary>
+        public int RetroPollSeconds
+        {
+            get { return retroPollSeconds; }
+            set { SetValue(ref retroPollSeconds, value); }
+        }
 
         /// <summary>
         /// Pasta da Steam, quando a descoberta automatica falha (instalacao portatil, outro
