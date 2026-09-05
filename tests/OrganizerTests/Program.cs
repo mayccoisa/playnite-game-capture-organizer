@@ -27,6 +27,7 @@ namespace OrganizerTests
             CasamentoPorPrefixo();
             ApelidoResolveOTituloDaJanela();
             MotivoDoGatilho();
+            PainelDeCapturas();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -343,6 +344,45 @@ namespace OrganizerTests
             // A poda de 30 dias leva os dois embora quando a leitura acontece 40 dias depois.
             var podados = GameCaptureOrganizer.AutoCapture.TriggerLog.Prune(registros, agora.AddDays(40));
             Eq("0", podados.Count.ToString());
+        }
+
+        /// <summary>
+        /// O painel agrupa pela PRIMEIRA pasta abaixo do destino, porque o padrao de pasta e
+        /// configuravel e o disco e a unica verdade sobre onde a captura mora.
+        /// </summary>
+        private static void PainelDeCapturas()
+        {
+            const string destino = @"D:\Capturas Organizadas";
+
+            Eq("Elden Ring", GameCaptureOrganizer.Gallery.GalleryScanner.GroupOf(
+                destino, destino + @"\Elden Ring\Screenshots\a.png"));
+
+            // Padrao que comeca por data agrupa por data — e o que a pessoa pediu ao escreve-lo.
+            Eq("2026-02", GameCaptureOrganizer.Gallery.GalleryScanner.GroupOf(
+                destino, destino + @"\2026-02\Elden Ring\a.png"));
+
+            // Captura solta na raiz nao some do painel: ganha grupo proprio.
+            Eq(GameCaptureOrganizer.Gallery.GalleryScanner.RootGroup,
+               GameCaptureOrganizer.Gallery.GalleryScanner.GroupOf(destino, destino + @"\a.png"));
+
+            // Arquivo de fora do destino nunca e atribuido a um grupo inventado.
+            Eq(GameCaptureOrganizer.Gallery.GalleryScanner.RootGroup,
+               GameCaptureOrganizer.Gallery.GalleryScanner.GroupOf(destino, @"D:\Outra\a.png"));
+
+            var itens = new List<GameCaptureOrganizer.Gallery.GalleryItem>
+            {
+                new GameCaptureOrganizer.Gallery.GalleryItem { Group = "Elden Ring", Kind = CaptureKind.Screenshot, WhenLocal = new DateTime(2026, 2, 10) },
+                new GameCaptureOrganizer.Gallery.GalleryItem { Group = "Elden Ring", Kind = CaptureKind.Video, WhenLocal = new DateTime(2026, 2, 12) },
+                new GameCaptureOrganizer.Gallery.GalleryItem { Group = "Palworld", Kind = CaptureKind.Screenshot, WhenLocal = new DateTime(2026, 3, 1) }
+            };
+
+            var grupos = GameCaptureOrganizer.Gallery.GalleryScanner.Group(itens);
+
+            // Quem jogou por ultimo aparece em cima: o painel e aberto para ver o que acabou de sair.
+            Eq("Palworld", grupos[0].Name);
+            Eq("Elden Ring", grupos[1].Name);
+            Eq("1 print · 1 vídeo", grupos[1].Summary);
+            Eq("2", grupos[1].Total.ToString());
         }
 
         private static void Eq(string esperado, string obtido)

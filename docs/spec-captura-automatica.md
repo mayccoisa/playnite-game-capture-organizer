@@ -138,3 +138,16 @@ credencial — o usuário informa, não é inventada.
 - **`Win+Alt+G` sem gravação em segundo plano** não faz nada, silenciosamente. É a F4.
 - **Print por PrintWindow como plano B** só entraria se algum dia sairmos do Game Bar; hoje ele
   seria o defeito que a PlayniteMemories tem (imagem preta salva como se fosse boa).
+
+**F7 · Painel lateral de capturas** (pedido do dono em 05/09/2026, feito antes da F3)
+Item próprio na barra lateral do Playnite (`GetSidebarItems`, `SiderbarItemType.View`) com a
+galeria da pasta organizada: pastas do primeiro nível à esquerda, grade de miniaturas à direita,
+filtro por tipo, e clique duplo abrindo a captura.
+*Pronto quando:* com capturas já organizadas, o painel abre listando da mais recente para a mais
+antiga, e a pasta de destino vazia mostra o que fazer em vez de uma tela em branco.
+
+Duas coisas que **não devem ser "simplificadas"** aqui: (a) **o painel lê o disco e não guarda
+índice próprio** — um índice paralelo discordaria da pasta no primeiro arquivo movido na mão, e
+passaria a mentir com autoridade; (b) **vídeo não ganha miniatura falsa**: extrair um quadro
+exigiria decodificador que a extensão não tem, então o cartão assume que é vídeo e mostra o
+símbolo.

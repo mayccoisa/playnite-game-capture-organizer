@@ -1,0 +1,139 @@
+<UserControl x:Class="GameCaptureOrganizer.Ui.GalleryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/GameCaptureOrganizer;component/Ui/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A pasta, na coluna da esquerda. -->
+            <DataTemplate x:Key="GroupTemplate">
+                <StackPanel Margin="4,6">
+                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource TextMutedBrush}"
+                               FontSize="11" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A captura, na grade da direita. -->
+            <DataTemplate x:Key="CardTemplate">
+                <Border Width="228" Margin="6" Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="6">
+                    <StackPanel>
+                        <Grid Height="128">
+                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                            <!-- Vídeo não tem miniatura: em vez de inventar um quadro, o cartão
+                                 assume que é vídeo e mostra o símbolo. -->
+                            <Border Background="#22FFFFFF">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasThumbnail}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           FontSize="30" Foreground="{DynamicResource TextMutedBrush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="🖼" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsVideo}" Value="True">
+                                                    <Setter Property="Text" Value="▶" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                        </Grid>
+                        <StackPanel Margin="10,8,10,10">
+                            <TextBlock Text="{Binding FileName}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Item.Path}" />
+                            <TextBlock Text="{Binding Caption}" Foreground="{DynamicResource TextMutedBrush}"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Background="{StaticResource PageBackgroundBrush}">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Cabeçalho -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Style="{StaticResource PageTitle}" Text="Capturas" />
+                <TextBlock Style="{StaticResource PageDescription}"
+                           Text="O que já foi organizado, do mais recente para o mais antigo. Clique duas vezes para abrir a captura." />
+            </StackPanel>
+
+            <!-- Barra -->
+            <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="False">
+                <ComboBox x:Name="FilterBox" Width="150" DockPanel.Dock="Left"
+                          SelectionChanged="OnFilterChanged">
+                    <ComboBoxItem Content="Tudo" IsSelected="True" />
+                    <ComboBoxItem Content="Só prints" />
+                    <ComboBoxItem Content="Só vídeos" />
+                </ComboBox>
+                <TextBlock x:Name="CountText" DockPanel.Dock="Left" Margin="12,0,0,0"
+                           VerticalAlignment="Center" Style="{StaticResource HintText}" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                        Content="Abrir a pasta" Click="OnOpenFolder" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                        Content="Atualizar" Click="OnRefresh" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                        Content="Organizar agora" Click="OnOrganize" />
+            </DockPanel>
+
+            <!-- Conteúdo -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ListBox x:Name="GroupList" Grid.Column="0" Margin="0,0,12,0"
+                         Background="Transparent" BorderBrush="{StaticResource BorderBrushSoft}"
+                         BorderThickness="1" Foreground="{DynamicResource TextPrimaryBrush}"
+                         ItemTemplate="{StaticResource GroupTemplate}"
+                         SelectionChanged="OnGroupChanged" />
+
+                <ListBox x:Name="CardList" Grid.Column="1" Background="Transparent" BorderThickness="0"
+                         ItemTemplate="{StaticResource CardTemplate}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         MouseDoubleClick="OnOpenCapture">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+
+                <!-- Estado vazio: ocupa as duas colunas, e diz o que fazer em vez de só "nada aqui". -->
+                <Border x:Name="EmptyState" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Collapsed"
+                        Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="Nada organizado ainda" />
+                        <TextBlock x:Name="EmptyText" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

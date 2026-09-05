@@ -27,6 +27,7 @@
          (SendInput) e o agendador dependem do Windows em execucao e nao cabem aqui. -->
     <Compile Include="$(SrcDir)\AutoCapture\CaptureTrigger.cs" />
     <Compile Include="$(SrcDir)\AutoCapture\TriggerLog.cs" />
+    <Compile Include="$(SrcDir)\Gallery\GalleryScanner.cs" />
   </ItemGroup>
 
   <ItemGroup>

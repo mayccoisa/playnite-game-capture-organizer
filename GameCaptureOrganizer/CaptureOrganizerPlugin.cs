@@ -445,6 +445,50 @@ namespace GameCaptureOrganizer
             }
         }
 
+        /// <summary>
+        /// O painel lateral. Uma entrada só, e ela abre a galeria da pasta organizada — é a
+        /// resposta para "ver as capturas sem sair do Playnite".
+        /// </summary>
+        public override IEnumerable<SidebarItem> GetSidebarItems()
+        {
+            yield return new SidebarItem
+            {
+                Title = "Capturas",
+                Type = SiderbarItemType.View,
+                Icon = new TextBlock
+                {
+                    Text = "📷",
+                    FontSize = 18,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = System.Windows.VerticalAlignment.Center
+                },
+                Opened = () => new Ui.GalleryView(this)
+            };
+        }
+
+        /// <summary>Abre a captura no programa padrão do Windows.</summary>
+        public void OpenCapture(string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    // Arquivo movido ou apagado por fora depois da varredura: avisa, em vez de a
+                    // pessoa achar que o clique não funcionou.
+                    PlayniteApi.Dialogs.ShowMessage(
+                        "Essa captura não está mais no disco. Use \"Atualizar\" para reler a pasta.",
+                        PluginIdentity.DisplayName);
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                logger.Warn(ex, "Não consegui abrir a captura.");
+            }
+        }
+
         public override ISettings GetSettings(bool firstRunSettings)
         {
             return SettingsModel;

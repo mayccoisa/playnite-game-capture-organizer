@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.0 — 2026-09-05
+
+Painel **Capturas** na barra lateral do Playnite: a pasta organizada vista de dentro do app, sem
+abrir o Explorador.
+
+### O que entrou
+
+- **Item próprio na barra lateral.** À esquerda, as pastas do primeiro nível com a conta do que
+  há em cada uma (com o padrão de fábrica, são os jogos); à direita, a grade de miniaturas, do
+  mais recente para o mais antigo. Clique duplo abre a captura no programa padrão.
+- **Filtro** por tudo, só prints ou só vídeos, e os botões "Organizar agora", "Atualizar" e
+  "Abrir a pasta" na própria barra do painel.
+- **Estado vazio que ensina**: pasta de destino não escolhida e pasta sem nada dizem o que fazer,
+  em vez de mostrar uma tela em branco.
+
+### Duas escolhas que valem saber
+
+- **O painel lê o disco, e não guarda índice próprio.** A pasta organizada é a verdade: um índice
+  paralelo discordaria dela no primeiro arquivo movido na mão, e passaria a mentir com autoridade.
+- **Vídeo não ganha miniatura.** Extrair um quadro exigiria um decodificador que a extensão não
+  tem; o cartão assume que é vídeo e mostra o símbolo, em vez de desenhar um quadro inventado.
+
+As miniaturas são decodificadas pequenas e fora da thread de interface, e trocar de pasta cancela
+o que ainda estava carregando — é o que impede uma pasta com centenas de prints em 4K de segurar
+o Playnite.
+
 ## 0.3.0 — 2026-09-05
 
 A extensão deixa de só **arquivar** captura e passa a **pedir** captura: enquanto um jogo aberto
