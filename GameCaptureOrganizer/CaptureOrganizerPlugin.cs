@@ -24,6 +24,9 @@ namespace GameCaptureOrganizer
 
         private readonly SessionIndex sessions;
         private readonly OrganizerService organizer;
+        private readonly AutoCapture.TriggerLog triggers;
+        private readonly AutoCapture.ICaptureTrigger trigger;
+        private readonly AutoCapture.CaptureScheduler scheduler;
         private readonly string logPath;
         private int pendingRun;
 
@@ -38,7 +41,20 @@ namespace GameCaptureOrganizer
             sessions = new SessionIndex(Path.Combine(dataPath, "sessoes.json"));
             sessions.Load();
 
-            organizer = new OrganizerService(sessions, this, logPath, msg => logger.Info("[Capturas] " + msg));
+            triggers = new AutoCapture.TriggerLog(Path.Combine(dataPath, "gatilhos.json"));
+            triggers.Load();
+
+            organizer = new OrganizerService(sessions, this, logPath, msg => logger.Info("[Capturas] " + msg), triggers);
+
+            trigger = new AutoCapture.GameBarTrigger(msg => logger.Info("[Captura automática] " + msg));
+            scheduler = new AutoCapture.CaptureScheduler(
+                trigger, triggers, () => Settings, msg => logger.Info("[Captura automática] " + msg));
+        }
+
+        /// <summary>Para a tela de configuração dizer, em português, o que o Windows permite hoje.</summary>
+        public AutoCapture.GameBarState ReadGameBarState()
+        {
+            return AutoCapture.GameBarState.Read();
         }
 
         public string LogPath { get { return logPath; } }
@@ -78,10 +94,57 @@ namespace GameCaptureOrganizer
             {
                 logger.Error(ex, "Não consegui registrar o início da sessão.");
             }
+
+            try
+            {
+                StartAutoCapture(game);
+            }
+            catch (Exception ex)
+            {
+                // Captura automática que falha não pode levar junto o registro da sessão, que é o
+                // que faz a organização saber de quem é cada arquivo.
+                logger.Error(ex, "Não consegui ligar a captura automática.");
+            }
+        }
+
+        /// <summary>
+        /// Liga o relógio da captura automática e, quando ele vai valer, confere o que o Windows
+        /// permite. O aviso sai UMA vez, no começo da sessão: descobrir que o Game Bar estava
+        /// desligado depois de duas horas de jogo é descobrir tarde demais.
+        /// </summary>
+        private void StartAutoCapture(Game game)
+        {
+            if (!Settings.AutoCaptureEnabled)
+            {
+                return;
+            }
+
+            var estado = AutoCapture.GameBarState.Read();
+            if (!estado.CanTakeScreenshot)
+            {
+                logger.Warn("[Captura automática] " + estado.Explain());
+                if (Settings.ShowNotification)
+                {
+                    Notify(estado.Explain());
+                }
+
+                return;
+            }
+
+            scheduler.Start(game.Id.ToString(), game.Name);
         }
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
+            try
+            {
+                scheduler.Stop();
+            }
+            catch (Exception ex)
+            {
+                logger.Warn(ex, "Não consegui parar a captura automática.");
+            }
+
             var game = args.Game;
             if (game != null)
             {
@@ -316,8 +379,34 @@ namespace GameCaptureOrganizer
         {
             const string sec = PluginIdentity.MenuSection;
             yield return new MainMenuItem { MenuSection = sec, Description = "Organizar capturas agora", Action = _ => RunInteractive() };
+            yield return new MainMenuItem { MenuSection = sec, Description = "Tirar print agora (Game Bar)", Action = _ => CaptureNow() };
             yield return new MainMenuItem { MenuSection = sec, Description = "Abrir a pasta organizada", Action = _ => OpenFolder(Settings.DestinationFolder) };
             yield return new MainMenuItem { MenuSection = sec, Description = "Abrir o log", Action = _ => OpenFile(logPath) };
+        }
+
+        /// <summary>
+        /// Print pedido na hora. Serve de teste do caminho inteiro sem esperar o intervalo: o
+        /// atalho sai, o gatilho é registrado, e a próxima passada carimba {Motivo} no arquivo.
+        /// </summary>
+        public void CaptureNow()
+        {
+            var estado = AutoCapture.GameBarState.Read();
+            if (!estado.CanTakeScreenshot)
+            {
+                PlayniteApi.Dialogs.ShowMessage(estado.Explain(), PluginIdentity.DisplayName);
+                return;
+            }
+
+            if (scheduler.CaptureNow(AutoCapture.CaptureReason.Manual))
+            {
+                Notify("Print pedido ao Game Bar. Ele aparece organizado na próxima passada.");
+                return;
+            }
+
+            PlayniteApi.Dialogs.ShowMessage(
+                "O Windows recusou o atalho do Game Bar. O caso comum é o jogo estar rodando como " +
+                "administrador e o Playnite não — entrada sintética não sobe de nível.",
+                PluginIdentity.DisplayName);
         }
 
         public void OpenFolder(string path)

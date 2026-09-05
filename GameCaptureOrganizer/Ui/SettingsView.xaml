@@ -100,9 +100,11 @@
                                 <Border Style="{StaticResource Separator}" />
                                 <TextBlock Style="{StaticResource StatusLabel}" Text="Marcadores disponíveis" />
                                 <TextBlock Style="{StaticResource HintText}"
-                                           Text="{}{Jogo}  {Tipo}  {Data}  {Hora}  {Ano}  {Mes}  {AnoMes}  {Plataforma}  {Fonte}  {Original}" />
+                                           Text="{}{Jogo}  {Tipo}  {Data}  {Hora}  {Ano}  {Mes}  {AnoMes}  {Plataforma}  {Fonte}  {Original}  {Motivo}" />
                                 <TextBlock Style="{StaticResource HintText}"
                                            Text="{}{Tipo} vira Screenshots ou Videos. Marcador escrito errado aparece como está no nome, em vez de sumir — é assim que o erro fica visível." />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="{}{Motivo} vira periodico, conquista ou manual quando foi a extensão que pediu a captura. Fica vazio no que você capturou pelo Game Bar na mão." />
 
                                 <Border Style="{StaticResource Separator}" />
                                 <Grid>
@@ -172,6 +174,70 @@
                                 <WrapPanel Margin="0,14,0,0">
                                     <Button Style="{StaticResource PrimaryButton}" Content="Organizar agora" Click="OnOrganizeNow" />
                                 </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ============================== Captura automática ============================== -->
+            <TabItem Header="Captura automática">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="18,18,18,24">
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource TitleBar}" />
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Captura automática" />
+                                <TextBlock Style="{StaticResource PageDescription}"
+                                           Text="Prints tirados sozinhos enquanto você joga. Quem grava é o Xbox Game Bar — a extensão só aperta o atalho na hora certa e depois arquiva o arquivo no jogo certo." />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Print de tempos em tempos" />
+                                <CheckBox Margin="0,12,0,0"
+                                          Content="Tirar print sozinho enquanto um jogo aberto pelo Playnite estiver rodando"
+                                          IsChecked="{Binding Settings.AutoCaptureEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="A cada quantos minutos" />
+                                <TextBox Width="90" HorizontalAlignment="Left"
+                                         Text="{Binding Settings.ScreenshotIntervalMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="O primeiro print sai depois do primeiro intervalo, não na abertura: tela de carregamento não é lembrança de nada. Nada é disparado com o Playnite parado na biblioteca." />
+
+                                <Border Style="{StaticResource Separator}" />
+                                <CheckBox Content="Tocar um som curto quando a extensão pedir a captura"
+                                          IsChecked="{Binding Settings.PlaySoundOnCapture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="O Game Bar já mostra o aviso dele por cima do jogo. O som é o que diz que foi a EXTENSÃO que pediu — sem ele, os dois casos parecem iguais e não dá para saber se o intervalo está rodando sem sair do jogo." />
+
+                                <Border Style="{StaticResource Separator}" />
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="Folga entre o pedido e o arquivo (segundos)" />
+                                <TextBox Width="90" HorizontalAlignment="Left"
+                                         Text="{Binding Settings.TriggerToleranceSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="É o que liga o arquivo que o Game Bar salvou ao motivo pelo qual ele foi pedido, para o marcador {Motivo} funcionar." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="O que o Windows permite hoje" />
+                                <TextBlock x:Name="GameBarStatusText" Style="{StaticResource StatusValue}"
+                                           TextWrapping="Wrap" Margin="0,12,0,0" />
+                                <TextBlock x:Name="GameBarFolderText" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Style="{StaticResource GhostButton}" Content="Conferir de novo" Click="OnCheckGameBar" />
+                                    <Button Style="{StaticResource GhostButton}" Content="Tirar print agora" Click="OnCaptureNow" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="A extensão só LÊ essa configuração. Ligar captura de jogo no seu lugar seria mexer em ajuste do sistema sem você pedir." />
                             </StackPanel>
                         </Border>
 

@@ -90,12 +90,21 @@ namespace GameCaptureOrganizer
         private readonly Action<string> logger;
         private readonly object gate = new object();
 
-        public OrganizerService(SessionIndex sessions, ILibraryLookup library, string logPath, Action<string> logger)
+        /// <summary>
+        /// Opcional: sem ele a organizacao roda igual, so sem o marcador {Motivo}. E de proposito —
+        /// quem instalou a extensao para organizar nao pode perder a organizacao porque a camada de
+        /// captura automatica falhou em ler o proprio caderno.
+        /// </summary>
+        private readonly AutoCapture.TriggerLog triggers;
+
+        public OrganizerService(SessionIndex sessions, ILibraryLookup library, string logPath, Action<string> logger,
+                                AutoCapture.TriggerLog triggers = null)
         {
             this.sessions = sessions;
             this.library = library;
             this.logPath = logPath;
             this.logger = logger;
+            this.triggers = triggers;
         }
 
         /// <summary>
@@ -235,6 +244,28 @@ namespace GameCaptureOrganizer
         /// Devolve nulo quando nada resolve e o fallback esta desligado — e ai a captura FICA na
         /// origem, que e melhor do que criar pasta "Sem nome" cheia de coisa perdida.
         /// </summary>
+        /// <summary>
+        /// O motivo do gatilho que casa com o horario do arquivo, se houver. Nulo aqui e o caso
+        /// comum, nao a excecao: captura tirada na mao pelo proprio Game Bar nao tem gatilho nosso.
+        /// </summary>
+        private string MatchReason(OrganizerSettings settings, DateTime quandoUtc)
+        {
+            if (triggers == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var segundos = Math.Max(0, settings.TriggerToleranceSeconds);
+                return triggers.Match(quandoUtc, TimeSpan.FromSeconds(segundos));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         private CaptureContext BuildContext(OrganizerSettings settings, FileInfo info, CaptureKind kind,
                                             DateTime quandoUtc, TimeSpan tolerance)
         {
@@ -242,7 +273,8 @@ namespace GameCaptureOrganizer
             {
                 Kind = kind,
                 Timestamp = quandoUtc.ToLocalTime(),
-                OriginalName = Path.GetFileNameWithoutExtension(info.Name)
+                OriginalName = Path.GetFileNameWithoutExtension(info.Name),
+                Reason = MatchReason(settings, quandoUtc)
             };
 
             if (settings.MatchBySession && sessions != null)

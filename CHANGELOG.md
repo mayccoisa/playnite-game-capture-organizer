@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.3.0 — 2026-09-05
+
+A extensão deixa de só **arquivar** captura e passa a **pedir** captura: enquanto um jogo aberto
+pelo Playnite estiver rodando, ela tira print de tempos em tempos sozinha.
+
+Quem grava continua sendo o **Xbox Game Bar** — a extensão aperta o atalho dele na hora certa e
+arquiva o arquivo no jogo certo, como sempre fez. Foi decisão de projeto e não economia: o Game
+Bar resolve tela cheia exclusiva, DirectX 12 e HDR, que é exatamente onde captura por janela
+(o caminho de outras extensões parecidas) salva imagem preta sem perceber.
+
+### O que entrou
+
+- **Print de tempos em tempos**, na aba nova **Captura automática**. Vem **desligada**: quem
+  instalou a extensão para organizar não deve ser surpreendido por print sozinho depois de
+  atualizar.
+- **Som curto de confirmação** a cada captura pedida pela extensão. O Game Bar já mostra o aviso
+  dele por cima do jogo, mas aquele aviso prova que o *Game Bar* capturou; o som é o que diz que
+  foi o **intervalo da extensão** que disparou — sem sair do jogo para conferir.
+- **Marcador `{Motivo}`** nos padrões de pasta e de nome: `periodico`, `conquista` ou `manual`.
+  Fica vazio no que você capturou pelo Game Bar na mão, e isso é o caso comum, não erro.
+- **"Tirar print agora (Game Bar)"** no menu principal e na tela de configuração, para provar o
+  caminho inteiro sem esperar o intervalo.
+- **Diagnóstico do Game Bar** na mesma aba: a extensão lê o que o Windows permite e explica em
+  português o que ligar e onde. Ela só **lê** — ligar captura de jogo no seu lugar seria mexer em
+  ajuste do sistema sem você pedir.
+
+### Antes de testar
+
+O print periódico funciona com a configuração padrão do Windows. **O clipe de vídeo ainda não
+existe nesta versão**, e quando existir vai depender da *gravação em segundo plano* do Game Bar
+(Configurações › Jogos › Capturas, "Gravar o que aconteceu"), que vem desligada de fábrica — é
+ela que segura os segundos anteriores ao momento.
+
+Em jogo rodando **como administrador** com o Playnite normal, o atalho não chega: o Windows recusa
+entrada sintética vinda de processo menos privilegiado. A extensão avisa no log em vez de falhar
+calada.
+
 ## 0.2.0 — 2026-08-26
 
 Corrige o caso em que o Game Bar nomeia o arquivo pelo **título da janela**, que nem sempre é o

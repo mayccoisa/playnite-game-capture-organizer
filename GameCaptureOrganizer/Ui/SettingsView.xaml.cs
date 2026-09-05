@@ -29,6 +29,41 @@ namespace GameCaptureOrganizer.Ui
 
             VersionText.Text = updateChecker.CurrentVersion;
             UpdatePreview();
+            RefreshGameBarStatus();
+        }
+
+        // ---------------------------------------------------------------- captura automatica
+
+        /// <summary>
+        /// Le o estado do Game Bar e escreve na tela. Roda na abertura e no botao: descobrir que a
+        /// gravacao estava desligada depois de duas horas de jogo e descobrir tarde demais.
+        /// </summary>
+        private void RefreshGameBarStatus()
+        {
+            try
+            {
+                var estado = plugin.ReadGameBarState();
+                GameBarStatusText.Text = estado.Explain();
+                GameBarFolderText.Text = string.IsNullOrWhiteSpace(estado.CapturesFolder)
+                    ? string.Empty
+                    : "O Windows salva as capturas em " + estado.CapturesFolder +
+                      ". Essa pasta precisa estar na lista de origem, na aba Pastas.";
+            }
+            catch (Exception ex)
+            {
+                GameBarStatusText.Text = "Não consegui ler a configuração do Game Bar: " + ex.Message;
+                GameBarFolderText.Text = string.Empty;
+            }
+        }
+
+        private void OnCheckGameBar(object sender, RoutedEventArgs e)
+        {
+            RefreshGameBarStatus();
+        }
+
+        private void OnCaptureNow(object sender, RoutedEventArgs e)
+        {
+            plugin.CaptureNow();
         }
 
         private OrganizerSettings Settings

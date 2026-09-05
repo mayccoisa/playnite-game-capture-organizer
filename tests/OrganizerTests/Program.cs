@@ -26,6 +26,7 @@ namespace OrganizerTests
             Apelidos();
             CasamentoPorPrefixo();
             ApelidoResolveOTituloDaJanela();
+            MotivoDoGatilho();
 
             Console.WriteLine();
             Console.WriteLine(string.Format("{0} verificações, {1} falha(s).", total, falhas));
@@ -300,6 +301,48 @@ namespace OrganizerTests
             {
                 try { Directory.Delete(Raiz, true); } catch { }
             }
+        }
+
+        /// <summary>
+        /// O marcador {Motivo} e o casamento do arquivo com o gatilho que o pediu. Vence o gatilho
+        /// mais PROXIMO, e nao o ultimo antes: o clipe dos ultimos segundos nasce carimbado antes
+        /// do gatilho, porque o video comecou la atras.
+        /// </summary>
+        private static void MotivoDoGatilho()
+        {
+            var ctx = new CaptureContext
+            {
+                GameName = "Elden Ring",
+                Kind = CaptureKind.Screenshot,
+                Timestamp = new DateTime(2026, 2, 15, 20, 30, 12),
+                Reason = "periodico"
+            };
+
+            Eq("Elden Ring_periodico.png", CaptureCore.BuildFileName("{Jogo}_{Motivo}", ctx, ".png"));
+
+            // Captura tirada na mao pelo proprio Game Bar nao tem gatilho nosso: o marcador some,
+            // e isso e o caso comum, nao erro.
+            ctx.Reason = null;
+            Eq("Elden Ring_.png", CaptureCore.BuildFileName("{Jogo}_{Motivo}", ctx, ".png"));
+
+            var agora = new DateTime(2026, 2, 15, 23, 30, 0, DateTimeKind.Utc);
+            var registros = new List<GameCaptureOrganizer.AutoCapture.CaptureTriggerRecord>
+            {
+                new GameCaptureOrganizer.AutoCapture.CaptureTriggerRecord { WhenUtc = agora.AddMinutes(-10), Reason = "periodico" },
+                new GameCaptureOrganizer.AutoCapture.CaptureTriggerRecord { WhenUtc = agora.AddSeconds(30), Reason = "conquista" }
+            };
+
+            var tolerancia = TimeSpan.FromSeconds(90);
+            Eq("conquista", GameCaptureOrganizer.AutoCapture.TriggerLog.Match(registros, agora, tolerancia));
+            Eq("periodico", GameCaptureOrganizer.AutoCapture.TriggerLog.Match(registros, agora.AddMinutes(-10), tolerancia));
+
+            // Fora da tolerancia nao casa com nada: melhor sem motivo do que com o motivo errado.
+            var semMotivo = GameCaptureOrganizer.AutoCapture.TriggerLog.Match(registros, agora.AddHours(-3), tolerancia);
+            Eq("(nulo)", semMotivo ?? "(nulo)");
+
+            // A poda de 30 dias leva os dois embora quando a leitura acontece 40 dias depois.
+            var podados = GameCaptureOrganizer.AutoCapture.TriggerLog.Prune(registros, agora.AddDays(40));
+            Eq("0", podados.Count.ToString());
         }
 
         private static void Eq(string esperado, string obtido)

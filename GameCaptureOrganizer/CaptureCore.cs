@@ -31,6 +31,13 @@ namespace GameCaptureOrganizer
 
         /// <summary>Como o nome do jogo foi descoberto. Vai para o log e para o resumo da rodada.</summary>
         public string Origin { get; set; }
+
+        /// <summary>
+        /// Por que a captura existe ("periodico", "conquista", "manual"), quando foi a extensao que
+        /// pediu. Vazio quando a pessoa apertou o atalho do Game Bar por conta propria — e isso NAO
+        /// e erro: e a maioria das capturas de quem sempre fez assim.
+        /// </summary>
+        public string Reason { get; set; }
     }
 
     /// <summary>
@@ -350,7 +357,8 @@ namespace GameCaptureOrganizer
                 { "AnoMes", context.Timestamp.ToString("yyyy-MM", CultureInfo.InvariantCulture) },
                 { "Plataforma", context.Platform },
                 { "Fonte", context.Source },
-                { "Original", context.OriginalName }
+                { "Original", context.OriginalName },
+                { "Motivo", context.Reason }
             };
 
             return Regex.Replace(pattern, @"\{(\w+)\}", match =>

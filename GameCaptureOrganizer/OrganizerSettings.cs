@@ -150,6 +150,52 @@ namespace GameCaptureOrganizer
             set { SetValue(ref nameAliases, value); }
         }
 
+        // ---------------------------------------------------------------- captura automatica
+
+        private bool autoCaptureEnabled;
+        private int screenshotIntervalMinutes = 15;
+        private int triggerToleranceSeconds = 90;
+        private bool playSoundOnCapture = true;
+
+        /// <summary>
+        /// Um bipe curto quando a extensao pede a captura. O Game Bar ja mostra o aviso dele por
+        /// cima do jogo, mas aquele aviso prova que o GAME BAR capturou — nao que foi a extensao.
+        /// O som e a unica confirmacao de que o nosso relogio disparou, sem sair do jogo.
+        /// </summary>
+        public bool PlaySoundOnCapture
+        {
+            get { return playSoundOnCapture; }
+            set { SetValue(ref playSoundOnCapture, value); }
+        }
+
+        /// <summary>
+        /// Desligada por padrao de proposito: quem ja usa a extensao instalou para ORGANIZAR, e uma
+        /// atualizacao que comeca a disparar print sozinha seria surpresa, nao melhoria.
+        /// </summary>
+        public bool AutoCaptureEnabled
+        {
+            get { return autoCaptureEnabled; }
+            set { SetValue(ref autoCaptureEnabled, value); }
+        }
+
+        /// <summary>De quantos em quantos minutos pedir um print enquanto o jogo roda. Zero desliga.</summary>
+        public int ScreenshotIntervalMinutes
+        {
+            get { return screenshotIntervalMinutes; }
+            set { SetValue(ref screenshotIntervalMinutes, value); }
+        }
+
+        /// <summary>
+        /// Quanto o carimbo do arquivo pode se afastar do gatilho e ainda ser o mesmo evento. O
+        /// print sai em menos de um segundo; o clipe dos ultimos segundos nasce carimbado la atras,
+        /// e e por causa dele que a folga e generosa.
+        /// </summary>
+        public int TriggerToleranceSeconds
+        {
+            get { return triggerToleranceSeconds; }
+            set { SetValue(ref triggerToleranceSeconds, value); }
+        }
+
         /// <summary>
         /// Caminhos padrao do proprio aparelho. Nunca ha caminho de outra maquina escrito no
         /// codigo: e assim que a mesma versao serve o PC e o Ally sem edicao.

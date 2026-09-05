@@ -23,6 +23,10 @@
     <Compile Include="$(SrcDir)\SessionIndex.cs" />
     <Compile Include="$(SrcDir)\OrganizerService.cs" />
     <Compile Include="$(SrcDir)\OrganizerSettings.cs" />
+    <!-- Da camada de captura automatica entra so o que e logica pura. O gatilho do Game Bar
+         (SendInput) e o agendador dependem do Windows em execucao e nao cabem aqui. -->
+    <Compile Include="$(SrcDir)\AutoCapture\CaptureTrigger.cs" />
+    <Compile Include="$(SrcDir)\AutoCapture\TriggerLog.cs" />
   </ItemGroup>
 
   <ItemGroup>
