@@ -28,6 +28,7 @@ namespace OrganizerTests
             ApelidoResolveOTituloDaJanela();
             MotivoDoGatilho();
             PainelDeCapturas();
+            ArvoreDePastas();
             ConquistaDaSteam();
             TeclaDeCaptura();
             RegrasPorJogo();
@@ -387,6 +388,128 @@ namespace OrganizerTests
             Eq("Elden Ring", grupos[1].Name);
             Eq("1 print · 1 vídeo", grupos[1].Summary);
             Eq("2", grupos[1].Total.ToString());
+        }
+
+        /// <summary>
+        /// A arvore de pastas do painel: o que substituiu a lista de um nivel so. O que se verifica
+        /// aqui e o que o olho nao pega na tela — se o total da pasta do jogo bate com a soma do
+        /// que ha dentro dela, e se desmarcar "incluir subpastas" realmente separa os niveis.
+        /// </summary>
+        private static void ArvoreDePastas()
+        {
+            const string destino = @"D:\Capturas Organizadas";
+
+            // A pasta relativa leva TODOS os niveis, e nao so o primeiro.
+            Eq(@"Elden Ring\Screenshots", GameCaptureOrganizer.Gallery.GalleryScanner.RelativeFolderOf(
+                destino, destino + @"\Elden Ring\Screenshots\a.png"));
+
+            // Solto na raiz nao ganha nome de pasta inventado.
+            Eq(string.Empty, GameCaptureOrganizer.Gallery.GalleryScanner.RelativeFolderOf(
+                destino, destino + @"\a.png"));
+
+            // Arquivo de fora do destino tambem nao.
+            Eq(string.Empty, GameCaptureOrganizer.Gallery.GalleryScanner.RelativeFolderOf(
+                destino, @"D:\Outra\a.png"));
+
+            var itens = new List<GameCaptureOrganizer.Gallery.GalleryItem>
+            {
+                Item(@"Elden Ring\Screenshots", CaptureKind.Screenshot, new DateTime(2026, 2, 10)),
+                Item(@"Elden Ring\Screenshots", CaptureKind.Screenshot, new DateTime(2026, 2, 11)),
+                Item(@"Elden Ring\Videos", CaptureKind.Video, new DateTime(2026, 2, 12)),
+                Item(@"Palworld\Screenshots", CaptureKind.Screenshot, new DateTime(2026, 3, 1)),
+                Item(string.Empty, CaptureKind.Screenshot, new DateTime(2026, 1, 5))
+            };
+
+            var arvore = GameCaptureOrganizer.Gallery.GalleryTree.Build(itens);
+            Eq("1", arvore.Count.ToString());
+
+            var todos = arvore[0];
+            IsTrue(todos.IsAll, "o primeiro no e o \"Tudo\"");
+            Eq("5", todos.Total.ToString());
+
+            // Mais recente em cima, igual a lista antiga: Palworld (marco) antes de Elden Ring
+            // (fevereiro), e o que ficou solto na raiz (janeiro) por ultimo.
+            Eq("Palworld", todos.Children[0].Name);
+            Eq("Elden Ring", todos.Children[1].Name);
+            Eq(GameCaptureOrganizer.Gallery.GalleryScanner.RootGroup, todos.Children[2].Name);
+
+            // O total do jogo ACUMULA os descendentes. Contar so o que esta imediatamente dentro
+            // mostraria "Elden Ring" como vazia, porque ali so ha as duas subpastas.
+            var eldenRing = todos.Children[1];
+            Eq("3", eldenRing.Total.ToString());
+            Eq("2 prints · 1 vídeo", eldenRing.Summary);
+            Eq("2", eldenRing.Children.Count.ToString());
+
+            // A subpasta de video e a mais recente do jogo, entao vem primeiro.
+            Eq("Videos", eldenRing.Children[0].Name);
+            Eq("Screenshots", eldenRing.Children[1].Name);
+            Eq(@"Elden Ring\Screenshots", eldenRing.Children[1].RelativePath);
+
+            // So a pasta de primeiro nivel procura jogo na biblioteca: "Screenshots" nao e titulo.
+            Eq("Elden Ring", eldenRing.GameName);
+            IsTrue(eldenRing.Children[1].GameName == null, "subpasta nao procura jogo na biblioteca");
+            IsTrue(todos.GameName == null, "o no \"Tudo\" nao procura jogo na biblioteca");
+
+            // "Tudo" mostra tudo, inclusive o que esta solto na raiz.
+            Eq("5", GameCaptureOrganizer.Gallery.GalleryTree.ItemsOf(itens, todos, true).Count.ToString());
+
+            // O jogo COM subpastas mostra as tres capturas dele...
+            Eq("3", GameCaptureOrganizer.Gallery.GalleryTree.ItemsOf(itens, eldenRing, true).Count.ToString());
+
+            // ...e SEM subpastas mostra zero, porque nao ha arquivo solto direto na pasta do jogo.
+            // E este o "ver por pasta" que faltava: antes so existia a primeira resposta.
+            Eq("0", GameCaptureOrganizer.Gallery.GalleryTree.ItemsOf(itens, eldenRing, false).Count.ToString());
+
+            var screenshots = eldenRing.Children[1];
+            Eq("2", GameCaptureOrganizer.Gallery.GalleryTree.ItemsOf(itens, screenshots, false).Count.ToString());
+
+            // O no da raiz solta mostra SO o que esta solto, e nao a pasta organizada inteira —
+            // o caminho relativo dele e vazio, que sem o IsLoose casaria com todo mundo.
+            var soltos = todos.Children[2];
+            IsTrue(soltos.IsLoose, "o no da raiz solta se identifica como tal");
+            Eq("1", GameCaptureOrganizer.Gallery.GalleryTree.ItemsOf(itens, soltos, true).Count.ToString());
+
+            // Pasta de jogo cujo nome e prefixo de outra nao rouba as capturas da vizinha:
+            // "Elden Ring" nao pode arrastar "Elden Ring II".
+            var vizinhas = new List<GameCaptureOrganizer.Gallery.GalleryItem>
+            {
+                Item("Elden Ring", CaptureKind.Screenshot, new DateTime(2026, 2, 10)),
+                Item("Elden Ring II", CaptureKind.Screenshot, new DateTime(2026, 2, 11))
+            };
+
+            var duas = GameCaptureOrganizer.Gallery.GalleryTree.Build(vizinhas)[0];
+            var primeira = duas.Children.First(f => f.Name == "Elden Ring");
+            Eq("1", GameCaptureOrganizer.Gallery.GalleryTree.ItemsOf(vizinhas, primeira, true).Count.ToString());
+
+            // O painel tem DUAS visualizacoes, e a preferencia entre elas e gravada. Os padroes
+            // reproduzem como o painel sempre se comportou: agrupado, com as subpastas incluidas.
+            // Configuracao gravada por uma versao anterior nao tem esses campos, e um padrao
+            // falso aqui abriria o painel na visualizacao que a pessoa nunca escolheu.
+            var padrao = OrganizerSettings.CreateDefault();
+            IsTrue(padrao.GalleryGroupByFolder, "o painel abre agrupado por pasta");
+            IsTrue(padrao.GalleryIncludeSubfolders, "a pasta do jogo mostra as subpastas por padrao");
+
+            // Arvore sem nenhuma captura ainda devolve o no "Tudo", e nao uma lista vazia: a tela
+            // se apoia nele para ter o que selecionar.
+            var vazia = GameCaptureOrganizer.Gallery.GalleryTree.Build(new List<GameCaptureOrganizer.Gallery.GalleryItem>());
+            Eq("1", vazia.Count.ToString());
+            Eq("0", vazia[0].Total.ToString());
+            Eq("vazia", vazia[0].Summary);
+        }
+
+        private static GameCaptureOrganizer.Gallery.GalleryItem Item(string pasta, CaptureKind tipo, DateTime quando)
+        {
+            return new GameCaptureOrganizer.Gallery.GalleryItem
+            {
+                Path = @"D:\Capturas Organizadas\" + (pasta.Length == 0 ? string.Empty : pasta + @"\") + "a.png",
+                FileName = "a.png",
+                Group = pasta.Length == 0
+                    ? GameCaptureOrganizer.Gallery.GalleryScanner.RootGroup
+                    : pasta.Split('\\')[0],
+                RelativeFolder = pasta,
+                Kind = tipo,
+                WhenLocal = quando
+            };
         }
 
         /// <summary>

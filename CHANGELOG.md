@@ -1,5 +1,101 @@
 # Changelog
 
+## 0.9.0 — 2026-09-10
+
+O painel **Capturas** vira o lugar onde tudo acontece: a configuração passa a morar nele, a pasta
+organizada passa a ser navegável por inteiro, e dá para pedir um print sem esperar o intervalo.
+
+### Capturar agora, na própria tela
+
+Botão **Capturar agora** na barra do painel. Ele já existia no menu principal; o que mudou é estar
+onde a pessoa está quando quer conferir alguma coisa.
+
+O motivo é o ciclo de conferência. Com o intervalo em quinze minutos, mexer numa configuração e
+descobrir se ela valeu custava quinze minutos — e quem está ajustando o padrão de pasta faz isso
+várias vezes seguidas. Agora custa um clique: o atalho sai, o gatilho é registrado, e a próxima
+passada carimba `{Motivo}` no arquivo.
+
+**A grade não recarrega sozinha depois do clique**, de propósito. O Game Bar grava o arquivo depois
+de o botão voltar; recarregar naquele instante mostraria a pasta sem a captura recém-pedida, o que
+parece falha do botão. Use **Atualizar** um segundo depois.
+
+### Duas visualizações, com seletor
+
+O painel passou a ter **duas** maneiras de olhar a mesma pasta, escolhidas no seletor à esquerda da
+barra. Uma **não** substitui a outra:
+
+- **Todas as capturas** — a grade corrida, como o painel sempre foi: tudo que foi organizado, do
+  mais recente para o mais antigo, sem coluna nenhuma no caminho. É a resposta para "o que saiu
+  hoje", que não tem pasta — a captura de agora pode estar em qualquer uma.
+- **Agrupadas por pasta** — a árvore nova, para caçar dentro de uma pasta específica.
+
+A escolha **fica gravada**: é gosto, não tarefa, e reabrir o Playnite na outra visualização
+obrigaria a trocar toda vez. O texto do cabeçalho acompanha — falar em "árvore à esquerda" na grade
+corrida mandaria procurar uma coluna que não está lá.
+
+### A árvore de pastas
+
+A lista da esquerda, na visualização agrupada, virou **árvore**. Antes ela enxergava só o
+**primeiro** nível abaixo do destino: com o padrão de fábrica `{Jogo}\{Tipo}`, dava para abrir
+"Elden Ring" e nada mais — tudo que o padrão separou depois disso (o tipo, e a data em quem usa
+padrão com data) não tinha como ser aberto. Agora todos os níveis aparecem.
+
+- **Os números são acumulados.** "Elden Ring · 2 prints · 1 vídeo" conta o que está nas subpastas.
+  Contar só o que está imediatamente dentro mostraria a pasta do jogo como vazia no padrão de
+  fábrica, porque ali dentro só existem as duas subpastas.
+- **A caixa "Incluir subpastas"** decide entre as duas leituras dentro da árvore. Marcada — que é o
+  padrão — a pasta do jogo mostra tudo que há embaixo dela; desmarcada, só o que está diretamente
+  nela. Ela some na grade corrida, onde não há pasta escolhida para ter subpasta.
+- **O cartão passou a dizer de que pasta veio.** Na grade corrida, e sempre que as subpastas estão
+  incluídas, a grade mistura origens e o cartão sozinho não dizia de onde era.
+- **A árvore sai do disco, não do padrão configurado.** O padrão pode ter mudado ontem, e as
+  capturas antigas continuam onde o padrão antigo as colocou. Derivar a árvore da configuração
+  esconderia justamente as mais antigas.
+- **Atualizar não perde o seu lugar.** A pasta aberta é reencontrada pelo caminho; se ela sumiu do
+  disco, a seleção cai em "Tudo" em vez de ficar vazia sem explicação.
+
+### O ícone do jogo ao lado da pasta
+
+A pasta de primeiro nível mostra o ícone do jogo na biblioteca do Playnite. Os ícones entram
+**depois**, fora da thread de interface, pelo mesmo motivo das miniaturas: uma pasta organizada com
+duzentos jogos são duzentas leituras de PNG, e fazê-las na montagem da árvore travaria o app ao
+abrir o painel. Só a pasta de primeiro nível procura jogo — "Screenshots" e "2026-09" não são
+títulos, e procurá-los na biblioteca só gastaria tempo para não achar nada.
+
+Jogo cujo ícone é uma URL (comum na Steam) fica sem ícone: a extensão não baixa imagem por conta
+própria.
+
+### Configuração dentro do painel
+
+Aba **Configuração**, ao lado de Capturas. É a **mesma tela** que o Playnite abre em Complementos ›
+Configuração, hospedada ali — e não uma segunda cópia dos campos, que divergiria no primeiro campo
+acrescentado só de um lado.
+
+Como aqui não existe o rodapé de OK/Cancelar do Playnite, a aba tem **Salvar** e **Desfazer**
+próprios: sem eles, mexer num campo e trocar de aba perderia a edição sem avisar. **Salvar** passa
+pelas mesmas validações da janela do Playnite — gravar daqui uma configuração que a janela
+recusaria deixaria a extensão num estado impossível de alcançar por lá.
+
+Voltar para a aba Capturas relê o disco, porque a pasta de destino pode ter acabado de mudar.
+
+### Ícone novo na barra lateral
+
+O emoji 📷 virou desenho vetorial. Emoji na barra lateral tem dois defeitos que só aparecem na
+máquina do outro: ele é desenhado pela fonte de emoji do Windows, então sai **colorido** no meio de
+uma barra de símbolos monocromáticos, e o tamanho não acompanha o do tema — no ROG Ally, com a
+barra estreita, ficava visivelmente maior que os vizinhos. O vetor pinta com a cor de texto do tema
+e estica junto com a barra.
+
+### Por baixo
+
+- O `TreeViewItem` do WPF ganhou template próprio na `Theme.xaml`. O padrão **não acompanha tema
+  escuro**: a seta expandida é desenhada com `#FF595959` sobre `#FF262626`, que no fundo desta
+  extensão é cinza-escuro sobre cinza-escuro — a seta some e a pasta parece não ter nada dentro.
+  Trocar só o `Foreground` não resolve, porque a seta não lê o `Foreground`.
+- A montagem da árvore (`Gallery/GalleryTree.cs`) é **pura**: sem WPF, sem Playnite. O ícone entra
+  nela como `object` justamente para ela continuar exercitável fora do app, e são 30 verificações
+  novas na suíte.
+
 ## 0.8.0 — 2026-09-05
 
 Conquistas de **emulador**, pelo RetroAchievements — a última peça da camada de captura automática.

@@ -12,6 +12,12 @@ namespace GameCaptureOrganizer
         public string Name { get; set; }
         public string Platform { get; set; }
         public string Source { get; set; }
+
+        /// <summary>
+        /// Caminho do icone do jogo no disco, quando a biblioteca tem um. Serve so ao painel, que
+        /// desenha o icone ao lado da pasta. A organizacao de arquivo nao olha para ele.
+        /// </summary>
+        public string IconPath { get; set; }
     }
 
     /// <summary>

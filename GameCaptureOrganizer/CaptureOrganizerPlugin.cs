@@ -497,7 +497,8 @@ namespace GameCaptureOrganizer
                         {
                             Name = game.Name,
                             Platform = NameOfPlatform(game),
-                            Source = NameOfSource(game)
+                            Source = NameOfSource(game),
+                            IconPath = FullPathOf(game.Icon)
                         };
                     }
 
@@ -568,6 +569,49 @@ namespace GameCaptureOrganizer
         private static string NameOfSource(Game game)
         {
             return game == null || game.Source == null ? null : game.Source.Name;
+        }
+
+        /// <summary>
+        /// O caminho no disco de uma imagem da biblioteca. O campo guardado e RELATIVO a pasta de
+        /// dados do Playnite ("abc123\icon.png"), entao entregar ele cru a um Image do WPF nao
+        /// desenha nada e tambem nao reclama — some em silencio, que e o pior jeito de falhar.
+        ///
+        /// Jogo da Steam costuma trazer o icone como URL; nesse caso nao ha arquivo local e o
+        /// painel simplesmente nao mostra icone, em vez de baixar imagem por conta propria.
+        /// </summary>
+        private string FullPathOf(string databasePath)
+        {
+            if (string.IsNullOrWhiteSpace(databasePath))
+            {
+                return null;
+            }
+
+            if (databasePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                databasePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            try
+            {
+                var caminho = PlayniteApi.Database.GetFullFilePath(databasePath);
+                return !string.IsNullOrWhiteSpace(caminho) && File.Exists(caminho) ? caminho : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// O icone do jogo cujo nome bate com o da pasta, para o painel desenhar ao lado dela.
+        /// Passa pelo mesmo indice de <see cref="Find"/>, entao a pasta escrita pelo organizador
+        /// acha o jogo pelo mesmo criterio que a nomeou — nenhum segundo casamento para divergir.
+        /// </summary>
+        public string GameIconPath(string folderName)
+        {
+            var hint = Find(folderName);
+            return hint == null ? null : hint.IconPath;
         }
 
         // ---------------------------------------------------------------- menus e tela
@@ -825,14 +869,57 @@ namespace GameCaptureOrganizer
             {
                 Title = "Capturas",
                 Type = SiderbarItemType.View,
-                Icon = new TextBlock
-                {
-                    Text = "📷",
-                    FontSize = 18,
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = System.Windows.VerticalAlignment.Center
-                },
+                Icon = SidebarIcon(),
                 Opened = () => new Ui.GalleryView(this)
+            };
+        }
+
+        /// <summary>
+        /// O icone da barra lateral. Era o emoji 📷, e emoji na barra lateral tem dois defeitos que
+        /// so aparecem na maquina do outro: ele e desenhado pela fonte de emoji do Windows, entao
+        /// sai COLORIDO no meio de uma barra de simbolos monocromaticos, e o tamanho dele nao
+        /// acompanha o do tema — no ROG Ally, com a barra estreita, ficava visivelmente maior que
+        /// os vizinhos.
+        ///
+        /// O vetor resolve os dois: pinta com a cor de texto do tema em uso e estica junto com a
+        /// barra. O furo da lente e o EvenOdd ("F0"), e nao um segundo desenho por cima — por cima
+        /// exigiria saber a cor do FUNDO, que muda com o tema.
+        /// </summary>
+        private System.Windows.FrameworkElement SidebarIcon()
+        {
+            const string data =
+                "F0 M3,7 L7,7 L8.5,4.5 L15.5,4.5 L17,7 L21,7 " +
+                "A2,2 0 0 1 23,9 L23,19 A2,2 0 0 1 21,21 L3,21 " +
+                "A2,2 0 0 1 1,19 L1,9 A2,2 0 0 1 3,7 Z " +
+                "M8,14 A4,4 0 1 1 16,14 A4,4 0 1 1 8,14 Z";
+
+            System.Windows.Media.Brush cor = null;
+            try
+            {
+                cor = PlayniteApi.Resources.GetResource("TextBrush") as System.Windows.Media.Brush;
+            }
+            catch (Exception)
+            {
+                cor = null;
+            }
+
+            var desenho = new System.Windows.Shapes.Path
+            {
+                Data = System.Windows.Media.Geometry.Parse(data),
+                // Sem cor do tema o Fill fica nulo e o icone some SEM ERRO NENHUM: a barra lateral
+                // mostra um espaco em branco clicavel. O branco de reserva e feio num tema claro,
+                // mas visivel — e visivel ganha de invisivel.
+                Fill = cor ?? System.Windows.Media.Brushes.White,
+                Stretch = System.Windows.Media.Stretch.Uniform
+            };
+
+            return new Viewbox
+            {
+                Child = desenho,
+                Width = 20,
+                Height = 20,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
             };
         }
 
@@ -857,6 +944,16 @@ namespace GameCaptureOrganizer
             {
                 logger.Warn(ex, "Não consegui abrir a captura.");
             }
+        }
+
+        /// <summary>
+        /// Grava a configuracao como ela esta. Existe para o painel guardar a preferencia de
+        /// visualizacao, que e escolhida fora da tela de configuracao e nao passa pelo ciclo de
+        /// BeginEdit/EndEdit do Playnite.
+        /// </summary>
+        public void SaveSettings()
+        {
+            SavePluginSettings(Settings);
         }
 
         public override ISettings GetSettings(bool firstRunSettings)

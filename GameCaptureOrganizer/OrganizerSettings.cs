@@ -150,6 +150,11 @@ namespace GameCaptureOrganizer
             set { SetValue(ref nameAliases, value); }
         }
 
+        // ---------------------------------------------------------------- painel
+
+        private bool galleryGroupByFolder = true;
+        private bool galleryIncludeSubfolders = true;
+
         // ---------------------------------------------------------------- captura automatica
 
         private bool autoCaptureEnabled;
@@ -295,6 +300,30 @@ namespace GameCaptureOrganizer
         {
             get { return playSoundOnCapture; }
             set { SetValue(ref playSoundOnCapture, value); }
+        }
+
+        /// <summary>
+        /// Qual das duas visualizacoes o painel abre: agrupado por pasta (a arvore) ou a grade
+        /// corrida com tudo.
+        ///
+        /// Fica GRAVADO, e nao apenas na tela viva, porque e escolha de gosto e nao de tarefa:
+        /// quem prefere a grade corrida prefere sempre, e reabrir o Playnite na outra visualizacao
+        /// obrigaria a trocar de novo toda vez.
+        /// </summary>
+        public bool GalleryGroupByFolder
+        {
+            get { return galleryGroupByFolder; }
+            set { SetValue(ref galleryGroupByFolder, value); }
+        }
+
+        /// <summary>
+        /// Na visualizacao por pasta, se a pasta escolhida mostra tambem o que esta nas subpastas.
+        /// Ligado por padrao porque e como o painel sempre se comportou.
+        /// </summary>
+        public bool GalleryIncludeSubfolders
+        {
+            get { return galleryIncludeSubfolders; }
+            set { SetValue(ref galleryIncludeSubfolders, value); }
         }
 
         /// <summary>

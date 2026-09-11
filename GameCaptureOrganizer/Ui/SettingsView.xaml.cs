@@ -35,6 +35,20 @@ namespace GameCaptureOrganizer.Ui
             RefreshRules();
         }
 
+        /// <summary>
+        /// Solta o tamanho minimo para esta tela caber dentro do painel lateral.
+        ///
+        /// O MinWidth de 900 existe para a JANELA de configuracao do Playnite nao abrir espremida,
+        /// e ali ele esta certo. Dentro do painel, quem manda na largura e a janela do app: no ROG
+        /// Ally, em 1280 de largura e com a barra lateral ocupando o seu pedaco, 900 forcaria
+        /// barra de rolagem horizontal permanente numa tela que nao precisa dela.
+        /// </summary>
+        public void Embed()
+        {
+            MinWidth = 0;
+            MinHeight = 0;
+        }
+
         // ---------------------------------------------------------------- captura automatica
 
         /// <summary>

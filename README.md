@@ -39,6 +39,36 @@ sumir — é assim que o erro de digitação fica visível antes de virar uma pa
 
 ---
 
+## O painel Capturas
+
+Uma entrada na barra lateral do Playnite, com duas abas.
+
+**Capturas** mostra a pasta organizada sem abrir o Explorador, de duas maneiras, no seletor da
+barra:
+
+| Visualização | O que é | Para quê |
+|---|---|---|
+| **Todas as capturas** | Grade corrida, do mais recente para o mais antigo | "O que saiu hoje" — que não tem pasta |
+| **Agrupadas por pasta** | Árvore à esquerda, grade à direita | Caçar dentro de uma pasta específica |
+
+A escolha fica gravada. A árvore tem **todos os níveis** — com o padrão de fábrica, o jogo e dentro
+dele Screenshots e Vídeos — e os números de cada pasta somam o que está nas subpastas. A caixa
+**Incluir subpastas** alterna entre ver o jogo inteiro e ver só o que está diretamente na pasta
+aberta. A pasta de primeiro nível mostra o ícone do jogo na biblioteca.
+
+Na barra: **Capturar agora** pede um print ao Game Bar na hora, que é como conferir uma mudança de
+configuração sem esperar o intervalo; **Organizar agora**, **Atualizar** e **Abrir a pasta** fazem
+o que dizem.
+
+**Configuração** é a mesma tela de Complementos › Configuração, hospedada ali dentro, com **Salvar**
+e **Desfazer** próprios — a aba não tem o rodapé de OK/Cancelar do Playnite, e sem eles trocar de
+aba perderia a edição calada.
+
+O painel **lê o disco** e não guarda banco próprio: a pasta organizada é a verdade, e um índice
+paralelo discordaria dela no primeiro arquivo movido à mão.
+
+---
+
 ## De onde vem o nome do jogo
 
 Em ordem de confiança, cada etapa desligável:
@@ -94,5 +124,6 @@ powershell -ExecutionPolicy Bypass -File release.ps1 -Version 0.2.0 -Commit
 | `SessionIndex.cs` | O caderno de sessões e o casamento captura ↔ jogo |
 | `OrganizerService.cs` | A varredura e a movimentação dos arquivos |
 | `CaptureOrganizerPlugin.cs` | Os ganchos do Playnite, os menus e a consulta à biblioteca |
-| `Ui/` | A tela de configuração e o tema (o mesmo do Playnite Hub) |
+| `Gallery/` | A leitura da pasta organizada e a árvore do painel. Pura: sem Playnite, sem WPF |
+| `Ui/` | O painel, a tela de configuração e o tema (o mesmo do Playnite Hub) |
 | `UpdateChecker.cs` | Atualização pela própria extensão |

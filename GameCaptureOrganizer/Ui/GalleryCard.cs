@@ -27,6 +27,21 @@ namespace GameCaptureOrganizer.Ui
 
         public string Group { get { return Item.Group; } }
 
+        /// <summary>
+        /// A pasta de onde a captura veio, relativa ao destino. Em "Tudo" — e em qualquer pasta
+        /// vista com as subpastas incluidas — a grade mistura origens, e sem esta linha o cartao
+        /// nao diz de onde e.
+        /// </summary>
+        public string FolderLabel
+        {
+            get { return string.IsNullOrEmpty(Item.RelativeFolder) ? null : Item.RelativeFolder; }
+        }
+
+        public bool HasFolderLabel
+        {
+            get { return !string.IsNullOrEmpty(Item.RelativeFolder); }
+        }
+
         public bool IsVideo { get { return Item.Kind == CaptureKind.Video; } }
 
         /// <summary>Data e hora legiveis, mais o tamanho. E o que a pessoa usa para achar a captura certa.</summary>

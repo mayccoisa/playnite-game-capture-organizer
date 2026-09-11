@@ -10,15 +10,31 @@
                 <ResourceDictionary Source="pack://application:,,,/GameCaptureOrganizer;component/Ui/Theme.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- A pasta, na coluna da esquerda. -->
-            <DataTemplate x:Key="GroupTemplate">
-                <StackPanel Margin="4,6">
-                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource TextMutedBrush}"
-                               FontSize="11" />
-                </StackPanel>
-            </DataTemplate>
+            <!-- A pasta, na árvore da esquerda. Hierárquica porque a pasta organizada tem mais de
+                 um nível: {Jogo}\{Tipo} de fábrica, e mais que isso com padrão que use data. -->
+            <HierarchicalDataTemplate x:Key="FolderTemplate" ItemsSource="{Binding Children}">
+                <Grid Margin="0,3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- O ícone do jogo, quando a biblioteca tem um. Sem ícone a coluna encolhe
+                         para zero, em vez de deixar um quadrado vazio empurrando o nome. -->
+                    <Image Grid.Column="0" Width="20" Height="20" Margin="0,0,8,0"
+                           VerticalAlignment="Center"
+                           Source="{Binding Icon}"
+                           Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisible}}"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                        <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource TextMutedBrush}"
+                                   FontSize="11" />
+                    </StackPanel>
+                </Grid>
+            </HierarchicalDataTemplate>
 
             <!-- A captura, na grade da direita. -->
             <DataTemplate x:Key="CardTemplate">
@@ -60,6 +76,11 @@
                                        TextTrimming="CharacterEllipsis" ToolTip="{Binding Item.Path}" />
                             <TextBlock Text="{Binding Caption}" Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="11" />
+                            <!-- De que pasta a captura veio. Em "Tudo", e ao incluir subpastas, o
+                                 cartão sozinho não dizia. -->
+                            <TextBlock Text="{Binding FolderLabel}" Foreground="{DynamicResource TextMutedBrush}"
+                                       FontSize="11" TextTrimming="CharacterEllipsis"
+                                       Visibility="{Binding HasFolderLabel, Converter={StaticResource BoolToVisible}}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -68,72 +89,142 @@
     </UserControl.Resources>
 
     <Border Background="{StaticResource PageBackgroundBrush}">
-        <Grid Margin="16">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+        <TabControl Style="{StaticResource TopTabControl}"
+                    ItemContainerStyle="{StaticResource TopTabItem}"
+                    SelectionChanged="OnTabChanged">
 
-            <!-- Cabeçalho -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,12">
-                <TextBlock Style="{StaticResource PageTitle}" Text="Capturas" />
-                <TextBlock Style="{StaticResource PageDescription}"
-                           Text="O que já foi organizado, do mais recente para o mais antigo. Clique duas vezes para abrir a captura." />
-            </StackPanel>
+            <!-- ============================== Capturas ============================== -->
+            <TabItem Header="Capturas">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-            <!-- Barra -->
-            <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="False">
-                <ComboBox x:Name="FilterBox" Width="150" DockPanel.Dock="Left"
-                          SelectionChanged="OnFilterChanged">
-                    <ComboBoxItem Content="Tudo" IsSelected="True" />
-                    <ComboBoxItem Content="Só prints" />
-                    <ComboBoxItem Content="Só vídeos" />
-                </ComboBox>
-                <TextBlock x:Name="CountText" DockPanel.Dock="Left" Margin="12,0,0,0"
-                           VerticalAlignment="Center" Style="{StaticResource HintText}" />
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
-                        Content="Abrir a pasta" Click="OnOpenFolder" />
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
-                        Content="Atualizar" Click="OnRefresh" />
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
-                        Content="Organizar agora" Click="OnOrganize" />
-            </DockPanel>
-
-            <!-- Conteúdo -->
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="240" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <ListBox x:Name="GroupList" Grid.Column="0" Margin="0,0,12,0"
-                         Background="Transparent" BorderBrush="{StaticResource BorderBrushSoft}"
-                         BorderThickness="1" Foreground="{DynamicResource TextPrimaryBrush}"
-                         ItemTemplate="{StaticResource GroupTemplate}"
-                         SelectionChanged="OnGroupChanged" />
-
-                <ListBox x:Name="CardList" Grid.Column="1" Background="Transparent" BorderThickness="0"
-                         ItemTemplate="{StaticResource CardTemplate}"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         VirtualizingPanel.IsVirtualizing="True"
-                         MouseDoubleClick="OnOpenCapture">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                </ListBox>
-
-                <!-- Estado vazio: ocupa as duas colunas, e diz o que fazer em vez de só "nada aqui". -->
-                <Border x:Name="EmptyState" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Collapsed"
-                        Style="{StaticResource Card}" VerticalAlignment="Top">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Nada organizado ainda" />
-                        <TextBlock x:Name="EmptyText" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                    <!-- Cabeçalho -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Style="{StaticResource PageTitle}" Text="Capturas" />
+                        <!-- O texto muda com a visualização: falar em "árvore à esquerda" na
+                             grade corrida manda a pessoa procurar uma coluna que não está lá. -->
+                        <TextBlock x:Name="HeaderText" Style="{StaticResource PageDescription}" />
                     </StackPanel>
-                </Border>
-            </Grid>
-        </Grid>
+
+                    <!-- Barra -->
+                    <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="False">
+                        <!-- As duas visualizações. A grade corrida é como o painel nasceu e
+                             continua sendo a resposta para "só quero ver o que saiu hoje"; a
+                             árvore é para caçar numa pasta específica. Uma não substitui a outra. -->
+                        <ComboBox x:Name="ModeBox" Width="190" DockPanel.Dock="Left"
+                                  SelectionChanged="OnModeChanged">
+                            <ComboBoxItem Content="Agrupadas por pasta" IsSelected="True" />
+                            <ComboBoxItem Content="Todas as capturas" />
+                        </ComboBox>
+                        <ComboBox x:Name="FilterBox" Width="150" DockPanel.Dock="Left" Margin="8,0,0,0"
+                                  SelectionChanged="OnFilterChanged">
+                            <ComboBoxItem Content="Tudo" IsSelected="True" />
+                            <ComboBoxItem Content="Só prints" />
+                            <ComboBoxItem Content="Só vídeos" />
+                        </ComboBox>
+                        <!-- Só faz sentido na visualização por pasta: na grade corrida não há
+                             pasta escolhida para ter subpasta. -->
+                        <CheckBox x:Name="SubfoldersBox" DockPanel.Dock="Left" Margin="12,0,0,0"
+                                  VerticalAlignment="Center" IsChecked="True"
+                                  Content="Incluir subpastas"
+                                  ToolTip="Desmarque para ver só o que está diretamente dentro da pasta escolhida."
+                                  Checked="OnSubfoldersChanged" Unchecked="OnSubfoldersChanged" />
+                        <TextBlock x:Name="CountText" DockPanel.Dock="Left" Margin="12,0,0,0"
+                                   VerticalAlignment="Center" Style="{StaticResource HintText}" />
+
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                                Content="Abrir a pasta" Click="OnOpenFolder" />
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                                Content="Atualizar" Click="OnRefresh" />
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                                Content="Organizar agora" Click="OnOrganize" />
+                        <!-- O botão que evita esperar o intervalo só para conferir o caminho. -->
+                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}"
+                                Content="Capturar agora" Click="OnCaptureNow"
+                                ToolTip="Pede um print ao Game Bar agora, sem esperar o intervalo." />
+                    </DockPanel>
+
+                    <!-- Conteúdo -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <!-- Vai a zero na grade corrida. Só esconder a árvore deixaria 260
+                                 pixels de buraco entre a borda e os cartões. -->
+                            <ColumnDefinition x:Name="TreeColumn" Width="260" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TreeView x:Name="FolderTree" Grid.Column="0" Margin="0,0,12,0"
+                                  Background="Transparent" BorderBrush="{StaticResource BorderBrushSoft}"
+                                  BorderThickness="1" Foreground="{DynamicResource TextPrimaryBrush}"
+                                  ItemTemplate="{StaticResource FolderTemplate}"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  SelectedItemChanged="OnFolderChanged" />
+
+                        <ListBox x:Name="CardList" Grid.Column="1" Background="Transparent" BorderThickness="0"
+                                 ItemTemplate="{StaticResource CardTemplate}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 MouseDoubleClick="OnOpenCapture">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+
+                        <!-- Estado vazio: ocupa as duas colunas, e diz o que fazer em vez de só "nada aqui". -->
+                        <Border x:Name="EmptyState" Grid.Column="0" Grid.ColumnSpan="2" Visibility="Collapsed"
+                                Style="{StaticResource Card}" VerticalAlignment="Top">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Nada organizado ainda" />
+                                <TextBlock x:Name="EmptyText" Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Configuração ============================== -->
+            <!--
+                A MESMA tela que o Playnite abre em Complementos › Configuração, hospedada aqui.
+                É o mesmo UserControl sobre o mesmo view model, e não uma segunda cópia dos campos:
+                duas telas para a mesma configuração divergiriam no primeiro campo que alguém
+                acrescentasse só de um lado.
+            -->
+            <TabItem Header="Configuração">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
+                        <ContentControl x:Name="SettingsHost" />
+                    </ScrollViewer>
+
+                    <!-- Aqui dentro não existe o rodapé de OK/Cancelar do Playnite, então a
+                         confirmação precisa ser explícita: sem ela, mexer num campo e sair da aba
+                         perderia a edição sem avisar. -->
+                    <Border Grid.Row="1" Background="#14000000" Padding="16,10"
+                            BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="0,1,0,0">
+                        <DockPanel LastChildFill="False">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}"
+                                    Content="Salvar" Click="OnSaveSettings" />
+                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}"
+                                    Content="Desfazer" Click="OnCancelSettings"
+                                    ToolTip="Volta os campos ao que estava quando esta aba foi aberta." />
+                            <TextBlock x:Name="SettingsStatus" DockPanel.Dock="Left"
+                                       VerticalAlignment="Center" Style="{StaticResource HintText}"
+                                       TextWrapping="Wrap" MaxWidth="560" />
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Border>
 </UserControl>

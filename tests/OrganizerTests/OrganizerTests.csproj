@@ -31,6 +31,9 @@
     <Compile Include="$(SrcDir)\AutoCapture\CaptureTrigger.cs" />
     <Compile Include="$(SrcDir)\AutoCapture\TriggerLog.cs" />
     <Compile Include="$(SrcDir)\Gallery\GalleryScanner.cs" />
+    <!-- A arvore de pastas nao toca WPF de proposito (o icone entra como object), justamente para
+         poder ser exercitada aqui: e ela que decide o que cada pasta mostra. -->
+    <Compile Include="$(SrcDir)\Gallery\GalleryTree.cs" />
     <Compile Include="$(SrcDir)\Achievements\SteamKeyValues.cs" />
     <Compile Include="$(SrcDir)\Achievements\SteamStats.cs" />
     <!-- O atalho depende de janela do Windows, mas a tradução do nome da tecla é pura — e é

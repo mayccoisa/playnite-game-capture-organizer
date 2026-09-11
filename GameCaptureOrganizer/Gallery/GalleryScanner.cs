@@ -14,6 +14,14 @@ namespace GameCaptureOrganizer.Gallery
         /// <summary>A primeira pasta abaixo do destino. Com o padrao de fabrica, e o nome do jogo.</summary>
         public string Group { get; set; }
 
+        /// <summary>
+        /// A pasta inteira abaixo do destino, com todos os niveis ("Elden Ring\Screenshots"), ou
+        /// vazio para o que esta solto na raiz. E o que permite navegar por pasta de verdade em vez
+        /// de so pelo primeiro nivel: com o padrao de fabrica o primeiro nivel e o jogo, e o que ele
+        /// separou depois (tipo, data) nao tinha como ser aberto no painel.
+        /// </summary>
+        public string RelativeFolder { get; set; }
+
         public CaptureKind Kind { get; set; }
         public DateTime WhenLocal { get; set; }
         public long SizeBytes { get; set; }
@@ -120,6 +128,7 @@ namespace GameCaptureOrganizer.Gallery
                     Path = arquivo.FullName,
                     FileName = arquivo.Name,
                     Group = GroupOf(raizPath, arquivo.FullName),
+                    RelativeFolder = RelativeFolderOf(raizPath, arquivo.FullName),
                     Kind = tipo,
                     WhenLocal = arquivo.LastWriteTime,
                     SizeBytes = arquivo.Length
@@ -150,6 +159,30 @@ namespace GameCaptureOrganizer.Gallery
             var relativo = filePath.Substring(raiz.Length + 1);
             var partes = relativo.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
             return partes.Length <= 1 ? RootGroup : partes[0];
+        }
+
+        /// <summary>
+        /// A pasta do arquivo relativa ao destino, com todos os niveis e sem o nome do arquivo.
+        /// Devolve vazio para o que esta solto na raiz — que e a propria raiz, e por isso nao ganha
+        /// nome inventado aqui.
+        /// </summary>
+        public static string RelativeFolderOf(string destination, string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(destination) || string.IsNullOrWhiteSpace(filePath))
+            {
+                return string.Empty;
+            }
+
+            var raiz = destination.TrimEnd('\\', '/');
+            if (filePath.Length <= raiz.Length + 1 ||
+                !filePath.StartsWith(raiz, StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            var relativo = filePath.Substring(raiz.Length + 1);
+            var partes = relativo.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            return partes.Length <= 1 ? string.Empty : string.Join("\\", partes, 0, partes.Length - 1);
         }
 
         /// <summary>
